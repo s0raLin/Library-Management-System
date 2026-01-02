@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cangli.mapper.BorrowRecordMapper">
+    <select id="findAll" resultType="com.cangli.pojo.BorrowRecord">
+        SELECT * FROM borrow_record ORDER BY id DESC
+    </select>
+
+    <select id="findById" parameterType="long" resultType="com.cangli.pojo.BorrowRecord">
+        SELECT * FROM borrow_record WHERE id = #{id}
+    </select>
+
+    <insert id="addBorrowRecord" parameterType="com.cangli.pojo.BorrowRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO borrow_record (
+            book_id,
+            reader_id,
+            borrow_date,
+            due_date,
+            status
+        ) VALUES (
+                     #{bookId},
+                     #{readerId},
+                     #{borrowDate},
+                     #{dueDate},
+                     #{status}
+                 )
+    </insert>
+
+    <update id="updateBorrowRecord" parameterType="com.cangli.pojo.BorrowRecord">
+        UPDATE borrow_record SET
+            book_id = #{bookId},
+            reader_id = #{readerId},
+            borrow_date = #{borrowDate},
+            due_date = #{dueDate},
+            return_date = #{returnDate},
+            overdue_fine = #{overdueFine},
+            status = #{status}
+        WHERE id = #{id}
+    </update>
+</mapper>

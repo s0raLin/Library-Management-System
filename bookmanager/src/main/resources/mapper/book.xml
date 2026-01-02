@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cangli.mapper.BookMapper">
+    <select id="findAll" resultType="com.cangli.pojo.Book">
+        SELECT * FROM book ORDER BY id DESC
+    </select>
+
+    <select id="findById" parameterType="long" resultType="com.cangli.pojo.Book">
+        SELECT * FROM book WHERE id = #{id}
+    </select>
+
+    <insert id="addBook" parameterType="com.cangli.pojo.Book" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO book (
+            code,
+            title,
+            author,
+            publisher,
+            isbn,
+            category,
+            publish_date,
+            price,
+            entry_date,
+            total_quantity,
+            stock_quantity,
+            borrow_times
+        ) VALUES (
+                     #{code},
+                     #{title},
+                     #{author},
+                     #{publisher},
+                     #{isbn},
+                     #{category},
+                     #{publishDate},
+                     #{price},
+                     #{entryDate},
+                     #{totalQuantity},
+                     #{stockQuantity},
+                     #{borrowTimes}
+                 )
+    </insert>
+
+    <update id="updateBook" parameterType="com.cangli.pojo.Book">
+        UPDATE book SET
+            title = #{title},
+            author = #{author},
+            publisher = #{publisher},
+            isbn = #{isbn},
+            category = #{category},
+            publish_date = #{publishDate},
+            price = #{price},
+            entry_date = #{entryDate},
+            total_quantity = #{totalQuantity},
+            stock_quantity = #{stockQuantity},
+            borrow_times = #{borrowTimes}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteBook" parameterType="long">
+        DELETE FROM book WHERE id = #{id}
+    </delete>
+</mapper>

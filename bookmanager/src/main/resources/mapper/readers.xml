@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cangli.mapper.ReaderMapper">
+    <select id="findAll" resultType="com.cangli.pojo.Reader">
+        SELECT * FROM reader ORDER BY id DESC
+    </select>
+
+    <select id="findById" parameterType="long" resultType="com.cangli.pojo.Reader">
+        SELECT * FROM reader WHERE id = #{id}
+    </select>
+
+    <insert id="addReader" parameterType="com.cangli.pojo.Reader" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO reader (
+            name,
+            gender,
+            class_dept,
+            reader_type,
+            contact,
+            borrow_limit,
+            borrowed_count
+        ) VALUES (
+                     #{name},
+                     #{gender},
+                     #{classDept},
+                     #{readerType},
+                     #{contact},
+                     #{borrowLimit},
+                     #{borrowedCount}
+                 )
+    </insert>
+
+    <update id="updateReader" parameterType="com.cangli.pojo.Reader">
+        UPDATE reader SET
+            name = #{name},
+            gender = #{gender},
+            class_dept = #{classDept},
+            reader_type = #{readerType},
+            contact = #{contact},
+            borrow_limit = #{borrowLimit},
+            borrowed_count = #{borrowedCount}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteReader" parameterType="long">
+        DELETE FROM reader WHERE id = #{id}
+    </delete>
+</mapper>

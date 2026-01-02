@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: "??????"
+  datasource:
+    url: jdbc:mariadb://localhost:3306/test?useUnicode=true&characterEncoding=utf8mb4&useSSL=false&serverTimezone=UTC
+    username: root
+    password: 20040814
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      auto-commit: false
+      connection-timeout: 3000
+      validation-timeout: 3000
+      max-lifetime: 60000
+      # ???????? 50
+      maximum-pool-size: 20
+      # ?????????? 1
+      minimum-idle: 1
+
+mybatis:
+  type-aliases-package: com.cangli.pojo  # 实体类包路径
+  mapper-locations: classpath:mapper/*.xml       # XML Mapper 文件路径（如果使用 XML）
+  configuration:
+    map-underscore-to-camel-case: true           # 下划线转驼峰
