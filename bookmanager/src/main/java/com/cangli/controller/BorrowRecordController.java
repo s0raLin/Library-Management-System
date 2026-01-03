@@ -31,13 +31,13 @@ public class BorrowRecordController {
 
     @PutMapping("/{recordId}/return")
     Result returnBook(@PathVariable Long recordId) {
-        borrowRecordService.returnBook(recordId);
-        return Result.ok();
+        BorrowRecord record = borrowRecordService.returnBook(recordId);
+        return Result.ok(record);
     }
 
     @PutMapping("/{recordId}/renew")
     Result renewBook(@PathVariable Long recordId) {
-        borrowRecordService.renewBook(recordId);
-        return Result.ok();
+        BorrowRecord record = borrowRecordService.renewBook(recordId);
+        return Result.ok(record);
     }
 }

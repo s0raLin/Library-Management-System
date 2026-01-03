@@ -17,6 +17,14 @@ import { getBorrowList, borrowBook, returnBook, renewBook } from './api/borrow';
 import { getCategoryMap } from './api/category';
 type Page = 'dashboard' | 'books' | 'readers' | 'borrow' | 'statistics' | 'my-borrows';
 
+type Category = {
+  id: number;
+  name: string;
+  code: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const saved = localStorage.getItem('library_login');
@@ -37,7 +45,6 @@ export default function App() {
   const [books, setBooks] = useState<Book[]>([]);
   const [readers, setReaders] = useState<Reader[]>([]);
   const [borrowRecords, setBorrowRecords] = useState<BorrowRecord[]>([]);
-  const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<string[]>([]);
   const [nextBookId, setNextBookId] = useState(1);
   const [nextReaderId, setNextReaderId] = useState(1);
@@ -65,39 +72,37 @@ export default function App() {
         const sampleReaders: Reader[] = await getReaderList()
         // 示例借阅记录
         const sampleRecords: BorrowRecord[] = await getBorrowList()
-        // 获取类别映射
-        const sampleCategories: Record<string, string> = await getCategoryMap()
-        
-        const categoryList = Object.values(sampleCategories)
-        
+        // 获取类别
+        const sampleCategories: Category[] = await getCategoryMap()
+
+        const categoryList = sampleCategories.map(cat => cat.name)
+
         toast.success(categoryList.join(", "))
 
         setBooks(sampleBooks)
         setReaders(sampleReaders)
         setBorrowRecords(sampleRecords)
-        setCategoryMap(sampleCategories)
         setCategories(categoryList)
+
+        // 计算下一个ID
+        const maxBookId = sampleBooks.length > 0 ? Math.max(...sampleBooks.map(b => b.id)) : 0;
+        const maxReaderId = sampleReaders.length > 0 ? Math.max(...sampleReaders.map(r => r.id)) : 0;
+        const maxRecordId = sampleRecords.length > 0 ? Math.max(...sampleRecords.map(r => r.id)) : 0;
+
+        setNextBookId(maxBookId + 1);
+        setNextReaderId(maxReaderId + 1);
+        setNextRecordId(maxRecordId + 1);
       } catch (error) {
         toast.error('错误: ' + (error instanceof Error ? error.message : String(error)));
 
         setBooks([])
         setReaders([])
         setBorrowRecords([])
-        setCategoryMap({})
         setCategories([])
       }
     };
 
     fetchData();
-
-    // 计算下一个ID
-    const maxBookId = books.length > 0 ? Math.max(...books.map(b => b.id)) : 0;
-    const maxReaderId = readers.length > 0 ? Math.max(...readers.map(r => r.id)) : 0;
-    const maxRecordId = borrowRecords.length > 0 ? Math.max(...borrowRecords.map(r => r.id)) : 0;
-
-    setNextBookId(maxBookId + 1);
-    setNextReaderId(maxReaderId + 1);
-    setNextRecordId(maxRecordId + 1);
   }, []);
 
   // 登录处理
@@ -269,6 +274,9 @@ export default function App() {
   const handleReturn = async (recordId: number) => {
     try {
       const updatedRecord = await returnBook(recordId);
+      if (!updatedRecord) {
+        throw new Error('返回的记录为空');
+      }
       setBorrowRecords(
         borrowRecords.map((r) =>
           r.id === recordId ? updatedRecord : r
@@ -327,6 +335,7 @@ export default function App() {
     overdueBooks: borrowRecords.filter((r) => r && r.status === '逾期').length,
   };
 
+  
   const recentBorrows = borrowRecords
     .filter((r) => r && (r.status === '借出' || r.status === '逾期'))
     .slice(-5)

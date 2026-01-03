@@ -77,7 +77,7 @@ public class BorrowRecordService implements BorrowRecordTrait {
     }
 
     @Transactional
-    public void returnBook(Long recordId) {
+    public BorrowRecord returnBook(Long recordId) {
         BorrowRecord record = borrowRecordMapper.findById(recordId);
         if (record == null) {
             throw new IllegalArgumentException("借阅记录不存在");
@@ -104,10 +104,12 @@ public class BorrowRecordService implements BorrowRecordTrait {
             reader.setBorrowedCount(reader.getBorrowedCount() - 1);
             readerMapper.updateReader(reader);
         }
+
+        return record;
     }
 
     @Transactional
-    public void renewBook(Long recordId) {
+    public BorrowRecord renewBook(Long recordId) {
         BorrowRecord record = borrowRecordMapper.findById(recordId);
         if (record == null) {
             throw new IllegalArgumentException("借阅记录不存在");
@@ -123,5 +125,6 @@ public class BorrowRecordService implements BorrowRecordTrait {
         record.setDueDate(cal.getTime());
 
         borrowRecordMapper.updateBorrowRecord(record);
+        return record;
     }
 }
