@@ -28,6 +28,7 @@ export interface Book {
 
 interface BookManagementProps {
   books: Book[];
+  categories: string[];
   onAddBook: (book: Omit<Book, 'id' | 'code' | 'borrowTimes'>) => Promise<void>;
   onUpdateBook: (id: number, book: Partial<Book>) => void;
   onDeleteBook: (id: number) => void;
@@ -35,7 +36,7 @@ interface BookManagementProps {
   onDiscard: (bookId: number, quantity: number) => void;
 }
 
-export function BookManagement({ books, onAddBook, onUpdateBook, onDeleteBook, onPurchase, onDiscard }: BookManagementProps) {
+export function BookManagement({ books, categories, onAddBook, onUpdateBook, onDeleteBook, onPurchase, onDiscard }: BookManagementProps) {
   console.log('books in BookManagement:', books);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -61,7 +62,7 @@ export function BookManagement({ books, onAddBook, onUpdateBook, onDeleteBook, o
     supplier: '',
   });
 
-  const categories = ['文学', '计算机', '自然科学', '社会科学', '艺术', '历史', '其他'];
+  // const categories = ['文学', '计算机', '自然科学', '社会科学', '艺术', '历史', '其他'];
 
   const filteredBooks = books.filter((book) => {
     const matchesSearch =
