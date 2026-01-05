@@ -7,7 +7,6 @@ import java.util.List;
 
 @Mapper
 public interface AdminMapper {
-
     Admin findById(Integer id);
 
     List<Admin> findAll();

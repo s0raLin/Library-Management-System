@@ -1,5 +1,8 @@
 package com.cangli.pojo;
 
+import lombok.Data;
+
+@Data
 public class Result {
     private Integer code;
     private String msg;
@@ -26,9 +29,4 @@ public class Result {
     public static Result error(String msg) {
         return new Result(500, msg, null);
     }
-
-    // Getters
-    public Integer getCode() { return code; }
-    public String getMsg() { return msg; }
-    public Object getData() { return data; }
 }

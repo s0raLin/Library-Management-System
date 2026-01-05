@@ -9,7 +9,7 @@ export function getBookList() {
 }
 
 // 添加图书
-export function addBook(bookData: Omit<Book, 'id' | 'code' | 'borrowTimes'>): Promise<any> {
+export function addBook(bookData: Omit<Book, 'id' | 'code' | 'borrowTimes' | 'isDeleted'>): Promise<any> {
   return post('/book', bookData);
 }
 

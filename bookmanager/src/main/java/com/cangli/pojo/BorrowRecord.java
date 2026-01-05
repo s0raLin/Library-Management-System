@@ -1,8 +1,11 @@
 package com.cangli.pojo;
 
+import lombok.Data;
+
 import java.math.BigDecimal;
 import java.util.Date;
 
+@Data
 public class BorrowRecord {
     private Long id;                        // 主键
     private Long bookId;                    // 图书ID
@@ -12,29 +15,9 @@ public class BorrowRecord {
     private Date returnDate;                // 归还时间（未还为null）
     private BigDecimal overdueFine = BigDecimal.ZERO;  // 超期罚金
     private String status = "借出";         // 状态：借出、已还、逾期
-
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public Long getBookId() { return bookId; }
-    public void setBookId(Long bookId) { this.bookId = bookId; }
-
-    public Long getReaderId() { return readerId; }
-    public void setReaderId(Long readerId) { this.readerId = readerId; }
-
-    public Date getBorrowDate() { return borrowDate; }
-    public void setBorrowDate(Date borrowDate) { this.borrowDate = borrowDate; }
-
-    public Date getDueDate() { return dueDate; }
-    public void setDueDate(Date dueDate) { this.dueDate = dueDate; }
-
-    public Date getReturnDate() { return returnDate; }
-    public void setReturnDate(Date returnDate) { this.returnDate = returnDate; }
-
-    public BigDecimal getOverdueFine() { return overdueFine; }
-    public void setOverdueFine(BigDecimal overdueFine) { this.overdueFine = overdueFine; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    private String bookTitle;               // 图书书名（冗余存储）
+    private String bookAuthor;              // 图书作者（冗余存储）
+    private String bookIsbn;                // 图书ISBN（冗余存储）
+    private String bookPublisher;           // 图书出版社（冗余存储）
+    private String bookCategory;            // 图书分类（冗余存储）
 }

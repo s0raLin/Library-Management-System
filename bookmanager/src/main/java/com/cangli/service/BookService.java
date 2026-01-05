@@ -54,14 +54,14 @@ public class BookService implements BookServiceTrait {
 
     @Transactional
     public void deleteBook(Long id) {
-        bookMapper.deleteBook(id);
+        bookMapper.softDeleteBook(id);
     }
 
     @Transactional
     public void purchaseBook(Long id, Integer quantity, String supplier) {
         Book book = bookMapper.findById(id);
         if (book == null) {
-            throw new IllegalArgumentException("图书不存在");
+            throw new IllegalArgumentException("purchaseBook: 图书不存在");
         }
         book.setTotalQuantity(book.getTotalQuantity() + quantity);
         book.setStockQuantity(book.getStockQuantity() + quantity);
@@ -77,6 +77,7 @@ public class BookService implements BookServiceTrait {
         if (book.getStockQuantity() < quantity) {
             throw new IllegalArgumentException("库存不足");
         }
+        book.setTotalQuantity(book.getTotalQuantity() - quantity);
         book.setStockQuantity(book.getStockQuantity() - quantity);
         bookMapper.updateBook(book);
     }

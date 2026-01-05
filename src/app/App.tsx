@@ -6,6 +6,8 @@ import { BookManagement, type Book } from './components/BookManagement';
 import { ReaderManagement, type Reader } from './components/ReaderManagement';
 import { BorrowManagement, type BorrowRecord } from './components/BorrowManagement';
 import { QueryStatistics } from './components/QueryStatistics';
+import { ReaderDashboard } from './components/ReaderDashboard';
+import { ReaderBorrowManagement } from './components/ReaderBorrowManagement';
 import { Button } from './components/ui/button';
 import { Library, BookOpen, Users, BookMarked, BarChart, LogOut, Menu, X } from 'lucide-react';
 import { getBookList, addBook, updateBook, deleteBook, purchaseBook, discardBook } from '@/app/api/book.ts'
@@ -13,12 +15,29 @@ import { getReaderList, addReader, updateReader, deleteReader } from './api/read
 import { toast } from 'sonner'
 import { getBorrowList, borrowBook, returnBook, renewBook } from './api/borrow';
 import { getCategoryMap } from './api/category';
-type Page = 'dashboard' | 'books' | 'readers' | 'borrow' | 'statistics';
+type Page = 'dashboard' | 'books' | 'readers' | 'borrow' | 'statistics' | 'my-borrows';
+
+type Category = {
+  id: number;
+  name: string;
+  code: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState('');
-  const [userRole, setUserRole] = useState<'admin' | 'reader'>('admin');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    const saved = localStorage.getItem('library_login');
+    return saved ? JSON.parse(saved).isLoggedIn : false;
+  });
+  const [username, setUsername] = useState(() => {
+    const saved = localStorage.getItem('library_login');
+    return saved ? JSON.parse(saved).username : '';
+  });
+  const [userRole, setUserRole] = useState<'admin' | 'reader'>(() => {
+    const saved = localStorage.getItem('library_login');
+    return saved ? JSON.parse(saved).userRole : 'admin';
+  });
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -26,57 +45,66 @@ export default function App() {
   const [books, setBooks] = useState<Book[]>([]);
   const [readers, setReaders] = useState<Reader[]>([]);
   const [borrowRecords, setBorrowRecords] = useState<BorrowRecord[]>([]);
-  const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
+  const [categories, setCategories] = useState<string[]>([]);
   const [nextBookId, setNextBookId] = useState(1);
   const [nextReaderId, setNextReaderId] = useState(1);
   const [nextRecordId, setNextRecordId] = useState(1);
 
   
+  // 路由保护：确保用户只能访问允许的页面
+  useEffect(() => {
+    if (isLoggedIn && userRole === 'reader') {
+      const allowedPages: Page[] = ['dashboard', 'my-borrows'];
+      if (!allowedPages.includes(currentPage)) {
+        setCurrentPage('dashboard');
+      }
+    }
+  }, [currentPage, userRole, isLoggedIn]);
+
   // 初始化示例数据
   useEffect(() => {
     const fetchData = async () => {
-      console.log('Starting to fetch data...');
       try {
         // 从异步请求获取图书数据
-
         const sampleBooks: Book[] = await getBookList()
-
         // 读者数据
-
         const sampleReaders: Reader[] = await getReaderList()
- 
         // 示例借阅记录
- 
         const sampleRecords: BorrowRecord[] = await getBorrowList()
+        console.log("App.tsx: sampleRecords from API:", sampleRecords)
+        const filteredRecords = sampleRecords.filter(r => sampleBooks.some(b => b.id === r.bookId));
+        console.log("App.tsx: filteredRecords after book filter:", filteredRecords)
+        // 获取类别
+        const sampleCategories: Category[] = await getCategoryMap()
 
-        // 获取类别映射
-        const sampleCategories: Record<string, string> = await getCategoryMap()
+        const categoryList = sampleCategories.map(cat => cat.name)
+
+        toast.success(categoryList.join(", "))
 
         setBooks(sampleBooks)
         setReaders(sampleReaders)
-        setBorrowRecords(sampleRecords)
-        setCategoryMap(sampleCategories)
-        console.log('All data set successfully');
+        setBorrowRecords(filteredRecords)
+        setCategories(categoryList)
+
+        // 计算下一个ID
+        const maxBookId = sampleBooks.length > 0 ? Math.max(...sampleBooks.map(b => b.id)) : 0;
+        const maxReaderId = sampleReaders.length > 0 ? Math.max(...sampleReaders.map(r => r.id)) : 0;
+        const maxRecordId = sampleRecords.length > 0 ? Math.max(...sampleRecords.map(r => r.id)) : 0;
+
+        setNextBookId(maxBookId + 1);
+        setNextReaderId(maxReaderId + 1);
+        setNextRecordId(maxRecordId + 1);
       } catch (error) {
         toast.error('错误: ' + (error instanceof Error ? error.message : String(error)));
-        // 如果请求失败，可以设置为空数组或默认数据
+
         setBooks([])
         setReaders([])
         setBorrowRecords([])
-        setCategoryMap({})
+        setCategories([])
       }
     };
 
     fetchData();
-
-    // 计算下一个ID
-    const maxBookId = books.length > 0 ? Math.max(...books.map(b => b.id)) : 0;
-    const maxReaderId = readers.length > 0 ? Math.max(...readers.map(r => r.id)) : 0;
-    const maxRecordId = borrowRecords.length > 0 ? Math.max(...borrowRecords.map(r => r.id)) : 0;
-
-    setNextBookId(maxBookId + 1);
-    setNextReaderId(maxReaderId + 1);
-    setNextRecordId(maxRecordId + 1);
   }, []);
 
   // 登录处理
@@ -84,6 +112,12 @@ export default function App() {
     setUsername(user);
     setUserRole(role);
     setIsLoggedIn(true);
+    setCurrentPage('dashboard'); // 确保登录后默认到dashboard
+    localStorage.setItem('library_login', JSON.stringify({
+      isLoggedIn: true,
+      username: user,
+      userRole: role
+    }));
   };
 
   // 登出处理
@@ -91,14 +125,14 @@ export default function App() {
     setIsLoggedIn(false);
     setUsername('');
     setCurrentPage('dashboard');
+    localStorage.removeItem('library_login');
   };
 
   // 图书管理函数
-  const handleAddBook = async (bookData: Omit<Book, 'id' | 'code' | 'borrowTimes'>) => {
+  const handleAddBook = async (bookData: Omit<Book, 'id' | 'code' | 'borrowTimes' | 'isDeleted'>) => {
     try {
       const newBook = await addBook(bookData);
       setBooks([...books, newBook]);
-      // 不再需要手动管理 nextBookId，后端会处理
     } catch (error) {
       toast.error('添加图书失败: ' + (error instanceof Error ? error.message : String(error)));
     }
@@ -115,6 +149,16 @@ export default function App() {
   };
 
   const handleDeleteBook = async (id: number) => {
+    // 检查是否有活跃的借阅记录
+    const activeBorrows = borrowRecords.filter(
+      (record) => record && record.bookId === id && (record.status === '借出' || record.status === '逾期')
+    );
+
+    if (activeBorrows.length > 0) {
+      toast.error('该图书有未归还的借阅记录，无法删除');
+      return;
+    }
+
     try {
       await deleteBook(id);
       setBooks(books.filter((book) => book.id !== id));
@@ -232,6 +276,9 @@ export default function App() {
   const handleReturn = async (recordId: number) => {
     try {
       const updatedRecord = await returnBook(recordId);
+      if (!updatedRecord) {
+        throw new Error('返回的记录为空');
+      }
       setBorrowRecords(
         borrowRecords.map((r) =>
           r.id === recordId ? updatedRecord : r
@@ -286,12 +333,13 @@ export default function App() {
     totalBooks: books.reduce((sum, book) => sum + book.totalQuantity, 0),
     availableBooks: books.reduce((sum, book) => sum + book.stockQuantity, 0),
     totalReaders: readers.length,
-    activeBorrows: borrowRecords.filter((r) => r.status === '借出' || r.status === '逾期').length,
-    overdueBooks: borrowRecords.filter((r) => r.status === '逾期').length,
+    activeBorrows: borrowRecords.filter((r) => r && (r.status === '借出' || r.status === '逾期')).length,
+    overdueBooks: borrowRecords.filter((r) => r && r.status === '逾期').length,
   };
 
+  
   const recentBorrows = borrowRecords
-    .filter((r) => r.status === '借出' || r.status === '逾期')
+    .filter((r) => r && (r.status === '借出' || r.status === '逾期'))
     .slice(-5)
     .reverse()
     .map((record) => {
@@ -306,12 +354,15 @@ export default function App() {
       };
     });
 
-  const menuItems = [
+  const menuItems = userRole === 'admin' ? [
     { id: 'dashboard' as Page, label: '数据概览', icon: Library },
     { id: 'books' as Page, label: '图书管理', icon: BookOpen },
     { id: 'readers' as Page, label: '读者管理', icon: Users },
     { id: 'borrow' as Page, label: '借阅管理', icon: BookMarked },
     { id: 'statistics' as Page, label: '查询统计', icon: BarChart },
+  ] : [
+    { id: 'dashboard' as Page, label: '我的概览', icon: Library },
+    { id: 'my-borrows' as Page, label: '我的借阅', icon: BookMarked },
   ];
 
   if (!isLoggedIn) {
@@ -399,10 +450,12 @@ export default function App() {
         {/* 主内容区 */}
         <main className="flex-1 p-4 lg:p-8">
           <div className="max-w-7xl mx-auto">
-            {currentPage === 'dashboard' && <Dashboard stats={stats} recentBorrows={recentBorrows} />}
-            {currentPage === 'books' && (
+            {currentPage === 'dashboard' && userRole === 'admin' && <Dashboard stats={stats} recentBorrows={recentBorrows} />}
+            {currentPage === 'dashboard' && userRole === 'reader' && <ReaderDashboard username={username} borrowRecords={borrowRecords} books={books} readers={readers} />}
+            {currentPage === 'books' && userRole === 'admin' && (
               <BookManagement
                 books={books}
+                categories={categories}
                 onAddBook={handleAddBook}
                 onUpdateBook={handleUpdateBook}
                 onDeleteBook={handleDeleteBook}
@@ -410,7 +463,7 @@ export default function App() {
                 onDiscard={handleDiscard}
               />
             )}
-            {currentPage === 'readers' && (
+            {currentPage === 'readers' && userRole === 'admin' && (
               <ReaderManagement
                 readers={readers}
                 onAddReader={handleAddReader}
@@ -418,7 +471,7 @@ export default function App() {
                 onDeleteReader={handleDeleteReader}
               />
             )}
-            {currentPage === 'borrow' && (
+            {currentPage === 'borrow' && userRole === 'admin' && (
               <BorrowManagement
                 books={books}
                 readers={readers}
@@ -428,7 +481,17 @@ export default function App() {
                 onRenew={handleRenew}
               />
             )}
-            {currentPage === 'statistics' && (
+            {currentPage === 'my-borrows' && userRole === 'reader' && (
+              <ReaderBorrowManagement
+                username={username}
+                books={books}
+                readers={readers}
+                borrowRecords={borrowRecords}
+                onReturn={handleReturn}
+                onRenew={handleRenew}
+              />
+            )}
+            {currentPage === 'statistics' && userRole === 'admin' && (
               <QueryStatistics books={books} readers={readers} borrowRecords={borrowRecords} />
             )}
           </div>

@@ -5,11 +5,11 @@
 
 <mapper namespace="com.cangli.mapper.BookMapper">
     <select id="findAll" resultType="com.cangli.pojo.Book">
-        SELECT * FROM book ORDER BY id DESC
+        SELECT * FROM book WHERE is_deleted = 0 ORDER BY id DESC
     </select>
 
     <select id="findById" parameterType="long" resultType="com.cangli.pojo.Book">
-        SELECT * FROM book WHERE id = #{id}
+        SELECT * FROM book WHERE id = #{id} AND is_deleted = 0
     </select>
 
     <insert id="addBook" parameterType="com.cangli.pojo.Book" useGeneratedKeys="true" keyProperty="id">
@@ -58,7 +58,7 @@
         WHERE id = #{id}
     </update>
 
-    <delete id="deleteBook" parameterType="long">
-        DELETE FROM book WHERE id = #{id}
-    </delete>
+    <update id="softDeleteBook" parameterType="long">
+        UPDATE book SET is_deleted = 1 WHERE id = #{id}
+    </update>
 </mapper>

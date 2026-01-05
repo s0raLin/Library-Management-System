@@ -18,6 +18,10 @@ public class BorrowRecordController {
     @GetMapping()
     Result getBorrowList() {
         List<BorrowRecord> borrowRecords = borrowRecordService.findAll();
+        System.out.println("BorrowRecordController.getBorrowList() returning " + borrowRecords.size() + " records");
+        for (BorrowRecord record : borrowRecords) {
+            System.out.println("BorrowRecord: id=" + record.getId() + ", status=" + record.getStatus() + ", readerId=" + record.getReaderId());
+        }
         return Result.ok(borrowRecords);
     }
 
@@ -31,13 +35,13 @@ public class BorrowRecordController {
 
     @PutMapping("/{recordId}/return")
     Result returnBook(@PathVariable Long recordId) {
-        borrowRecordService.returnBook(recordId);
-        return Result.ok();
+        BorrowRecord record = borrowRecordService.returnBook(recordId);
+        return Result.ok(record);
     }
 
     @PutMapping("/{recordId}/renew")
     Result renewBook(@PathVariable Long recordId) {
-        borrowRecordService.renewBook(recordId);
-        return Result.ok();
+        BorrowRecord record = borrowRecordService.renewBook(recordId);
+        return Result.ok(record);
     }
 }

@@ -58,7 +58,6 @@ instance.interceptors.response.use(
 
 export default instance;
 
-// 在同一个文件中扩展
 export function get(url: string, params = {}): Promise<any> {
   return instance.get(url, { params });
 }
@@ -67,7 +66,6 @@ export function post(url: string, data = {}) {
   return instance.post(url, data);
 }
 
-// 其他如 put、delete 同理
 export function put(url: string, data = {}) {
   return instance.put(url, data);
 }

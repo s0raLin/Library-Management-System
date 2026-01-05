@@ -3,6 +3,7 @@ package com.cangli.controller;
 import com.cangli.pojo.Book;
 import com.cangli.pojo.Result;
 import com.cangli.service.BookService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
