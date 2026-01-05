@@ -22,6 +22,11 @@ export interface BorrowRecord {
   returnDate: string | null;
   overdueFine: number;
   status: '借出' | '已还' | '逾期';
+  bookTitle: string;
+  bookAuthor: string;
+  bookIsbn: string;
+  bookPublisher: string;
+  bookCategory: string;
 }
 
 interface BorrowManagementProps {
@@ -220,13 +225,12 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
                     </TableRow>
                   ) : (
                     filteredActiveBorrows.map((record) => {
-                      const book = getBookById(record.bookId);
                       const reader = getReaderById(record.readerId);
                       const overdue = isOverdue(record.dueDate);
-                      
+
                       return (
                         <TableRow key={record.id}>
-                          <TableCell>{book?.title || '未知'}</TableCell>
+                          <TableCell>{record.bookTitle || '未知'}</TableCell>
                           <TableCell>{reader?.name || '未知'}</TableCell>
                           <TableCell>{record.borrowDate}</TableCell>
                           <TableCell className={overdue ? 'text-red-600' : ''}>
@@ -297,12 +301,11 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
                     </TableRow>
                   ) : (
                     returnedBorrows.slice(0, 50).map((record) => {
-                      const book = getBookById(record.bookId);
                       const reader = getReaderById(record.readerId);
-                      
+
                       return (
                         <TableRow key={record.id}>
-                          <TableCell>{book?.title || '未知'}</TableCell>
+                          <TableCell>{record.bookTitle || '未知'}</TableCell>
                           <TableCell>{reader?.name || '未知'}</TableCell>
                           <TableCell>{record.borrowDate}</TableCell>
                           <TableCell>{record.dueDate}</TableCell>

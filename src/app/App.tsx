@@ -64,7 +64,6 @@ export default function App() {
   // 初始化示例数据
   useEffect(() => {
     const fetchData = async () => {
-      console.log('Starting to fetch data...');
       try {
         // 从异步请求获取图书数据
         const sampleBooks: Book[] = await getBookList()
@@ -72,6 +71,9 @@ export default function App() {
         const sampleReaders: Reader[] = await getReaderList()
         // 示例借阅记录
         const sampleRecords: BorrowRecord[] = await getBorrowList()
+        console.log("App.tsx: sampleRecords from API:", sampleRecords)
+        const filteredRecords = sampleRecords.filter(r => sampleBooks.some(b => b.id === r.bookId));
+        console.log("App.tsx: filteredRecords after book filter:", filteredRecords)
         // 获取类别
         const sampleCategories: Category[] = await getCategoryMap()
 
@@ -81,7 +83,7 @@ export default function App() {
 
         setBooks(sampleBooks)
         setReaders(sampleReaders)
-        setBorrowRecords(sampleRecords)
+        setBorrowRecords(filteredRecords)
         setCategories(categoryList)
 
         // 计算下一个ID
@@ -127,7 +129,7 @@ export default function App() {
   };
 
   // 图书管理函数
-  const handleAddBook = async (bookData: Omit<Book, 'id' | 'code' | 'borrowTimes'>) => {
+  const handleAddBook = async (bookData: Omit<Book, 'id' | 'code' | 'borrowTimes' | 'isDeleted'>) => {
     try {
       const newBook = await addBook(bookData);
       setBooks([...books, newBook]);

@@ -15,4 +15,9 @@ public class BorrowRecord {
     private Date returnDate;                // 归还时间（未还为null）
     private BigDecimal overdueFine = BigDecimal.ZERO;  // 超期罚金
     private String status = "借出";         // 状态：借出、已还、逾期
+    private String bookTitle;               // 图书书名（冗余存储）
+    private String bookAuthor;              // 图书作者（冗余存储）
+    private String bookIsbn;                // 图书ISBN（冗余存储）
+    private String bookPublisher;           // 图书出版社（冗余存储）
+    private String bookCategory;            // 图书分类（冗余存储）
 }

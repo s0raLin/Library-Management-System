@@ -11,5 +11,5 @@ public interface BookMapper {
     Book findById(Long id);
     void addBook(Book book);
     void updateBook(Book book);
-    void deleteBook(Long id);
+    void softDeleteBook(Long id);
 }

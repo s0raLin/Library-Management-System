@@ -4,9 +4,55 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.cangli.mapper.BorrowRecordMapper">
-    <select id="findAll" resultType="com.cangli.pojo.BorrowRecord">
-        SELECT * FROM borrow_record ORDER BY id DESC
+    <resultMap id="borrowRecordResultMap" type="com.cangli.pojo.BorrowRecord">
+        <id property="id" column="id"/>
+        <result property="bookId" column="book_id"/>
+        <result property="readerId" column="reader_id"/>
+        <result property="borrowDate" column="borrow_date"/>
+        <result property="dueDate" column="due_date"/>
+        <result property="returnDate" column="return_date"/>
+        <result property="overdueFine" column="overdue_fine"/>
+        <result property="status" column="status"/>
+        <result property="bookTitle" column="book_title"/>
+        <result property="bookAuthor" column="book_author"/>
+        <result property="bookIsbn" column="book_isbn"/>
+        <result property="bookPublisher" column="book_publisher"/>
+        <result property="bookCategory" column="book_category"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="borrowRecordResultMap">
+        SELECT br.*,
+               b.title as book_title,
+               b.author as book_author,
+               b.isbn as book_isbn,
+               b.publisher as book_publisher,
+               b.category as book_category
+        FROM borrow_record br
+                 JOIN book b ON br.book_id = b.id
+        WHERE b.is_deleted = 0
+        ORDER BY br.id DESC
     </select>
+
+<!--    <select id="findAll" resultType="com.cangli.pojo.BorrowRecord">-->
+<!--        SELECT-->
+<!--            br.id,-->
+<!--            br.book_id as bookId,-->
+<!--            br.reader_id as readerId,-->
+<!--            br.borrow_date as borrowDate,-->
+<!--            br.due_date as dubDate,-->
+<!--            br.return_date as returnDate,-->
+<!--            br.overdue_fine as overdueFine,-->
+<!--            br.status,-->
+<!--            b.title as bookTitle,-->
+<!--            b.author as bookAuthor,-->
+<!--            b.isbn as bookIsbn,-->
+<!--            b.publisher as bookPublisher,-->
+<!--            b.category as bookCategory-->
+<!--        FROM borrow_record br-->
+<!--        JOIN book b ON br.book_id = b.id-->
+<!--        WHERE b.is_deleted = 0-->
+<!--        ORDER BY br.id DESC-->
+<!--    </select>-->
 
     <select id="findById" parameterType="long" resultType="com.cangli.pojo.BorrowRecord">
         SELECT * FROM borrow_record WHERE id = #{id}
@@ -20,12 +66,12 @@
             due_date,
             status
         ) VALUES (
-                     #{bookId},
-                     #{readerId},
-                     #{borrowDate},
-                     #{dueDate},
-                     #{status}
-                 )
+                      #{bookId},
+                      #{readerId},
+                      #{borrowDate},
+                      #{dueDate},
+                      #{status}
+                  )
     </insert>
 
     <update id="updateBorrowRecord" parameterType="com.cangli.pojo.BorrowRecord">

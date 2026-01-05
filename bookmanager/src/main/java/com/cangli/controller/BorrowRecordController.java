@@ -18,6 +18,10 @@ public class BorrowRecordController {
     @GetMapping()
     Result getBorrowList() {
         List<BorrowRecord> borrowRecords = borrowRecordService.findAll();
+        System.out.println("BorrowRecordController.getBorrowList() returning " + borrowRecords.size() + " records");
+        for (BorrowRecord record : borrowRecords) {
+            System.out.println("BorrowRecord: id=" + record.getId() + ", status=" + record.getStatus() + ", readerId=" + record.getReaderId());
+        }
         return Result.ok(borrowRecords);
     }
 

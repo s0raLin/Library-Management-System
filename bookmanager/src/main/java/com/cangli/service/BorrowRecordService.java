@@ -28,7 +28,9 @@ public class BorrowRecordService implements BorrowRecordTrait {
 
     @Override
     public List<BorrowRecord> findAll() {
-        return borrowRecordMapper.findAll();
+        List<BorrowRecord> records = borrowRecordMapper.findAll();
+        System.out.println("BorrowRecordService.findAll() returned " + records.size() + " records");
+        return records;
     }
 
     @Transactional
@@ -60,6 +62,13 @@ public class BorrowRecordService implements BorrowRecordTrait {
         record.setDueDate(cal.getTime());
 
         record.setStatus("借出");
+
+        // 设置冗余的图书信息
+        record.setBookTitle(book.getTitle());
+        record.setBookAuthor(book.getAuthor());
+        record.setBookIsbn(book.getIsbn());
+        record.setBookPublisher(book.getPublisher());
+        record.setBookCategory(book.getCategory());
 
         // 插入借阅记录
         borrowRecordMapper.addBorrowRecord(record);

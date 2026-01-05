@@ -54,7 +54,7 @@ public class BookService implements BookServiceTrait {
 
     @Transactional
     public void deleteBook(Long id) {
-        bookMapper.deleteBook(id);
+        bookMapper.softDeleteBook(id);
     }
 
     @Transactional

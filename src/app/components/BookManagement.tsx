@@ -24,12 +24,13 @@ export interface Book {
   totalQuantity: number;
   stockQuantity: number;
   borrowTimes: number;
+  isDeleted: boolean;
 }
 
 interface BookManagementProps {
   books: Book[];
   categories: string[];
-  onAddBook: (book: Omit<Book, 'id' | 'code' | 'borrowTimes'>) => Promise<void>;
+  onAddBook: (book: Omit<Book, 'id' | 'code' | 'borrowTimes' | 'isDeleted'>) => Promise<void>;
   onUpdateBook: (id: number, book: Partial<Book>) => void;
   onDeleteBook: (id: number) => void;
   onPurchase: (bookId: number, quantity: number, supplier: string) => void;
@@ -76,8 +77,24 @@ export function BookManagement({ books, categories, onAddBook, onUpdateBook, onD
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.author) {
-      toast.error('请填写必填项');
+    if (!formData.title.trim() || !formData.author.trim()) {
+      toast.error('请填写书名和作者');
+      return;
+    }
+    if (!formData.category) {
+      toast.error('请选择分类');
+      return;
+    }
+    if (formData.totalQuantity < 0 || formData.stockQuantity < 0) {
+      toast.error('数量不能为负数');
+      return;
+    }
+    if (formData.stockQuantity > formData.totalQuantity) {
+      toast.error('库存数量不能超过总数量');
+      return;
+    }
+    if (formData.price < 0) {
+      toast.error('价格不能为负数');
       return;
     }
     try {

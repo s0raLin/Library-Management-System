@@ -19,11 +19,21 @@ interface QueryStatisticsProps {
 }
 
 export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisticsProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
 
-  // 热门图书统计
+    // Debug logs for active readers calculation
+    console.log('QueryStatistics: borrowRecords length:', borrowRecords.length);
+    const activeRecords = borrowRecords.filter((r) => r.status === '借出' || r.status === '逾期');
+    console.log('QueryStatistics: activeRecords length:', activeRecords.length);
+    const activeReaderIds = activeRecords.map((r) => r.readerId);
+    console.log('QueryStatistics: activeReaderIds:', activeReaderIds);
+    const uniqueActiveReaders = new Set(activeReaderIds);
+    console.log('QueryStatistics: uniqueActiveReaders size:', uniqueActiveReaders.size);
+    console.log('QueryStatistics: all borrowRecords:', borrowRecords);
+
+   // 热门图书统计
   const popularBooks = books
     .sort((a, b) => b.borrowTimes - a.borrowTimes)
     .slice(0, 10)
@@ -166,7 +176,7 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 mb-1">活跃读者</p>
-                    <p className="text-3xl">{readers.filter((r) => r.borrowedCount > 0).length}</p>
+                    <p className="text-3xl">{new Set(borrowRecords.filter((r) => r.status === '借出' || r.status === '逾期').map((r) => r.readerId)).size}</p>
                   </div>
                   <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
                     <BookOpen className="w-6 h-6 text-green-600" />
@@ -220,7 +230,8 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
                         <TableCell className="text-red-600">{book.stockQuantity}</TableCell>
                         <TableCell>
                           <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm">
-                            已售罄
+                            {/* 已售罄 */}
+                            已借完
                           </span>
                         </TableCell>
                       </TableRow>
@@ -289,7 +300,11 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>图书</TableHead>
+                    <TableHead>图书名称</TableHead>
+                    <TableHead>作者</TableHead>
+                    <TableHead>ISBN</TableHead>
+                    <TableHead>出版社</TableHead>
+                    <TableHead>类别</TableHead>
                     <TableHead>借阅人</TableHead>
                     <TableHead>借出日期</TableHead>
                     <TableHead>应还日期</TableHead>
@@ -300,7 +315,7 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
                 <TableBody>
                   {filteredBorrowRecords.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                      <TableCell colSpan={10} className="text-center text-gray-500 py-8">
                         暂无记录
                       </TableCell>
                     </TableRow>
@@ -311,7 +326,11 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
                       
                       return (
                         <TableRow key={record.id}>
-                          <TableCell>{book?.title || '未知'}</TableCell>
+                          <TableCell>{book?.title || record.bookTitle || '未知'}</TableCell>
+                          <TableCell>{book?.author || record.bookAuthor || '未知'}</TableCell>
+                          <TableCell>{book?.isbn || record.bookIsbn || '未知'}</TableCell>
+                          <TableCell>{book?.publisher || record.bookPublisher || '未知'}</TableCell>
+                          <TableCell>{book?.category || record.bookCategory || '未知'}</TableCell>
                           <TableCell>{reader?.name || '未知'}</TableCell>
                           <TableCell>{record.borrowDate}</TableCell>
                           <TableCell>{record.dueDate}</TableCell>
@@ -361,7 +380,11 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>图书</TableHead>
+                    <TableHead>图书名称</TableHead>
+                    <TableHead>作者</TableHead>
+                    <TableHead>ISBN</TableHead>
+                    <TableHead>出版社</TableHead>
+                    <TableHead>类别</TableHead>
                     <TableHead>借阅人</TableHead>
                     <TableHead>借出日期</TableHead>
                     <TableHead>应还日期</TableHead>
@@ -372,7 +395,7 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
                 <TableBody>
                   {overdueRecords.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                      <TableCell colSpan={10} className="text-center text-gray-500 py-8">
                         暂无逾期图书
                       </TableCell>
                     </TableRow>
@@ -386,7 +409,11 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
                       
                       return (
                         <TableRow key={record.id}>
-                          <TableCell>{book?.title || '未知'}</TableCell>
+                          <TableCell>{book?.title || record.bookTitle || '未知'}</TableCell>
+                          <TableCell>{book?.author || record.bookAuthor || '未知'}</TableCell>
+                          <TableCell>{book?.isbn || record.bookIsbn || '未知'}</TableCell>
+                          <TableCell>{book?.publisher || record.bookPublisher || '未知'}</TableCell>
+                          <TableCell>{book?.category || record.bookCategory || '未知'}</TableCell>
                           <TableCell>{reader?.name || '未知'}</TableCell>
                           <TableCell>{record.borrowDate}</TableCell>
                           <TableCell className="text-red-600">{record.dueDate}</TableCell>
