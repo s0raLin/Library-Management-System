@@ -3,7 +3,6 @@ package com.cangli.controller;
 import com.cangli.pojo.Book;
 import com.cangli.pojo.Result;
 import com.cangli.service.BookService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +23,7 @@ public class BookController {
 
     @PostMapping()
     Result addBook(@RequestBody Book book) {
+        System.out.println(book);
         bookService.addBook(book);
         return Result.ok(book);
     }
@@ -45,6 +45,11 @@ public class BookController {
     Result purchaseBook(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         Integer quantity = (Integer) request.get("quantity");
         String supplier = (String) request.get("supplier");
+
+        System.out.println("订阅:");
+        System.out.println(quantity);
+        System.out.println(supplier);
+        System.out.println("订阅成功");
         bookService.purchaseBook(id, quantity, supplier);
         return Result.ok();
     }

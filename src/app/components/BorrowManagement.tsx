@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -23,17 +23,13 @@ export interface BorrowRecord {
   overdueFine: number;
   status: '借出' | '已还' | '逾期';
   bookTitle: string;
-  bookAuthor: string;
-  bookIsbn: string;
-  bookPublisher: string;
-  bookCategory: string;
 }
 
 interface BorrowManagementProps {
   books: Book[];
   readers: Reader[];
   borrowRecords: BorrowRecord[];
-  onBorrow: (bookId: number, readerId: number) => void;
+  onBorrow: (bookId: number, readerId: number, itemId: number) => void;
   onReturn: (recordId: number) => void;
   onRenew: (recordId: number) => void;
 }
@@ -42,7 +38,12 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
   const [isBorrowDialogOpen, setIsBorrowDialogOpen] = useState(false);
   const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
   const [selectedReaderId, setSelectedReaderId] = useState<number | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    setSelectedItemId(null);
+  }, [selectedBookId]);
 
   const activeBorrows = borrowRecords.filter((r) => r && (r.status === '借出' || r.status === '逾期'));
   const returnedBorrows = borrowRecords.filter((r) => r && r.status === '已还');
@@ -58,8 +59,8 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
   });
 
   const handleBorrow = () => {
-    if (!selectedBookId || !selectedReaderId) {
-      toast.error('请选择图书和读者');
+    if (!selectedBookId || !selectedReaderId || !selectedItemId) {
+      toast.error('请选择图书、读者和具体图书副本');
       return;
     }
 
@@ -68,21 +69,17 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
 
     if (!book || !reader) return;
 
-    if (book.stockQuantity <= 0) {
-      toast.error('该图书库存不足');
-      return;
-    }
-
     if (reader.borrowedCount >= reader.borrowLimit) {
       toast.error(`${reader.name} 已达借阅限额（${reader.borrowLimit}本）`);
       return;
     }
 
-    onBorrow(selectedBookId, selectedReaderId);
+    onBorrow(selectedBookId, selectedReaderId, selectedItemId);
     toast.success(`${reader.name} 成功借阅《${book.title}》`);
     setIsBorrowDialogOpen(false);
     setSelectedBookId(null);
     setSelectedReaderId(null);
+    setSelectedItemId(null);
   };
 
   const handleReturn = (record: BorrowRecord) => {
@@ -156,15 +153,44 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
                   </SelectTrigger>
                   <SelectContent>
                     {books
-                      .filter((book) => book.stockQuantity > 0)
-                      .map((book) => (
-                        <SelectItem key={book.id} value={book.id.toString()}>
-                          {book.title} - {book.author} (库存: {book.stockQuantity})
-                        </SelectItem>
-                      ))}
+                      .filter((book) => {
+                        const availableQuantity = book.bookItems?.filter(item => item.status === 'available')?.length || 0;
+                        return availableQuantity > 0;
+                      })
+                      .map((book) => {
+                        const availableQuantity = book.bookItems?.filter(item => item.status === 'available')?.length || 0;
+                        return (
+                          <SelectItem key={book.id} value={book.id.toString()}>
+                            {book.title} - {book.author} (可借: {availableQuantity})
+                          </SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
               </div>
+              {selectedBookId && (
+                <div className="space-y-2">
+                  <Label>选择图书副本</Label>
+                  <Select
+                    value={selectedItemId?.toString()}
+                    onValueChange={(value) => setSelectedItemId(parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="请选择图书副本" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {books
+                        .find((b) => b.id === selectedBookId)
+                        ?.bookItems?.filter((item) => item.status === 'available')
+                        .map((item) => (
+                          <SelectItem key={item.id} value={item.id.toString()}>
+                            {item.barcode || `副本 ${item.id}`}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800">
                   <AlertCircle className="w-4 h-4 inline mr-1" />
@@ -258,8 +284,8 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => {
-                                    onRenew(record.id);
+                                  onClick={async () => {
+                                    await onRenew(record.id);
                                     toast.success('续借成功，延长30天');
                                   }}
                                 >

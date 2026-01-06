@@ -8,8 +8,8 @@ export function getBorrowList() {
 }
 
 // 借书
-export function borrowBook(bookId: number, readerId: number): Promise<any> {
-  return post('/borrow', { bookId, readerId });
+export function borrowBook(bookId: number, readerId: number, itemId: number): Promise<any> {
+  return post('/borrow', { bookId, readerId, itemId });
 }
 
 // 还书

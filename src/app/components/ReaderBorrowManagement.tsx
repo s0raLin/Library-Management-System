@@ -124,8 +124,8 @@ export function ReaderBorrowManagement({
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => {
-                                    onRenew(record.id);
+                                  onClick={async () => {
+                                    await onRenew(record.id);
                                     toast.success('续借成功，延长30天');
                                   }}
                                 >

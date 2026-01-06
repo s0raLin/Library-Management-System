@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface BorrowRecordTrait {
     List<BorrowRecord> findAll();
-    BorrowRecord borrowBook(Long bookId, Long readerId);
+    BorrowRecord borrowBook(Long bookId, Long readerId, Integer itemId);
     BorrowRecord returnBook(Long recordId);
     BorrowRecord renewBook(Long recordId);
 }

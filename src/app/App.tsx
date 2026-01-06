@@ -8,14 +8,15 @@ import { BorrowManagement, type BorrowRecord } from './components/BorrowManageme
 import { QueryStatistics } from './components/QueryStatistics';
 import { ReaderDashboard } from './components/ReaderDashboard';
 import { ReaderBorrowManagement } from './components/ReaderBorrowManagement';
+import { ReaderBookBrowser } from './components/ReaderBookBrowser';
 import { Button } from './components/ui/button';
 import { Library, BookOpen, Users, BookMarked, BarChart, LogOut, Menu, X } from 'lucide-react';
-import { getBookList, addBook, updateBook, deleteBook, purchaseBook, discardBook } from '@/app/api/book.ts'
+import { getBookList, addBook, updateBook, deleteBook, purchaseBook, discardBook, updateBookItemStatus } from '@/app/api/book.ts'
 import { getReaderList, addReader, updateReader, deleteReader } from './api/reader';
 import { toast } from 'sonner'
 import { getBorrowList, borrowBook, returnBook, renewBook } from './api/borrow';
 import { getCategoryMap } from './api/category';
-type Page = 'dashboard' | 'books' | 'readers' | 'borrow' | 'statistics' | 'my-borrows';
+type Page = 'dashboard' | 'books' | 'readers' | 'borrow' | 'statistics' | 'my-borrows' | 'browse-books';
 
 type Category = {
   id: number;
@@ -45,16 +46,13 @@ export default function App() {
   const [books, setBooks] = useState<Book[]>([]);
   const [readers, setReaders] = useState<Reader[]>([]);
   const [borrowRecords, setBorrowRecords] = useState<BorrowRecord[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [nextBookId, setNextBookId] = useState(1);
-  const [nextReaderId, setNextReaderId] = useState(1);
-  const [nextRecordId, setNextRecordId] = useState(1);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   
   // 路由保护：确保用户只能访问允许的页面
   useEffect(() => {
     if (isLoggedIn && userRole === 'reader') {
-      const allowedPages: Page[] = ['dashboard', 'my-borrows'];
+      const allowedPages: Page[] = ['dashboard', 'my-borrows', 'browse-books'];
       if (!allowedPages.includes(currentPage)) {
         setCurrentPage('dashboard');
       }
@@ -76,24 +74,13 @@ export default function App() {
         console.log("App.tsx: filteredRecords after book filter:", filteredRecords)
         // 获取类别
         const sampleCategories: Category[] = await getCategoryMap()
-
-        const categoryList = sampleCategories.map(cat => cat.name)
-
-        toast.success(categoryList.join(", "))
+        console.log('Loaded categories:', sampleCategories);
 
         setBooks(sampleBooks)
         setReaders(sampleReaders)
         setBorrowRecords(filteredRecords)
-        setCategories(categoryList)
+        setCategories(sampleCategories)
 
-        // 计算下一个ID
-        const maxBookId = sampleBooks.length > 0 ? Math.max(...sampleBooks.map(b => b.id)) : 0;
-        const maxReaderId = sampleReaders.length > 0 ? Math.max(...sampleReaders.map(r => r.id)) : 0;
-        const maxRecordId = sampleRecords.length > 0 ? Math.max(...sampleRecords.map(r => r.id)) : 0;
-
-        setNextBookId(maxBookId + 1);
-        setNextReaderId(maxReaderId + 1);
-        setNextRecordId(maxRecordId + 1);
       } catch (error) {
         toast.error('错误: ' + (error instanceof Error ? error.message : String(error)));
 
@@ -131,9 +118,15 @@ export default function App() {
   // 图书管理函数
   const handleAddBook = async (bookData: Omit<Book, 'id' | 'code' | 'borrowTimes' | 'isDeleted'>) => {
     try {
+      console.log('handleAddBook called with:', bookData);
       const newBook = await addBook(bookData);
-      setBooks([...books, newBook]);
+      console.log('Book added successfully:', newBook);
+      
+      // 添加图书后刷新整个图书列表，以获取完整的数据结构
+      const updatedBooks = await getBookList();
+      setBooks(updatedBooks);
     } catch (error) {
+      console.error('handleAddBook error:', error);
       toast.error('添加图书失败: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
@@ -169,42 +162,86 @@ export default function App() {
   };
 
   const handlePurchase = async (bookId: number, quantity: number, supplier: string) => {
+    console.log('\n=== App.tsx Purchase Handler ===');
+    console.log('Parameters received:', { bookId, quantity, supplier });
+    
     try {
-      await purchaseBook(bookId, quantity, supplier);
-      setBooks(
-        books.map((book) =>
-          book.id === bookId
-            ? {
-                ...book,
-                totalQuantity: book.totalQuantity + quantity,
-                stockQuantity: book.stockQuantity + quantity,
-              }
-            : book
-        )
-      );
+      console.log('Calling purchaseBook API...');
+      const result = await purchaseBook(bookId, quantity, supplier);
+      console.log('purchaseBook API result:', result);
+      
+      console.log('Refreshing book list...');
+      const updatedBooks = await getBookList();
+      console.log('Updated books received:', updatedBooks.length, 'books');
+      
+      // 查找更新后的特定图书
+      const updatedBook = updatedBooks.find((book: Book) => book.id === bookId);
+      if (updatedBook) {
+        console.log('Updated book details:', {
+          id: updatedBook.id,
+          title: updatedBook.title,
+          bookItemsCount: updatedBook.bookItems?.length || 0,
+          bookItems: updatedBook.bookItems
+        });
+      }
+      
+      setBooks(updatedBooks);
       toast.success('采购成功');
+      console.log('Purchase operation completed successfully');
     } catch (error) {
+      console.error('Purchase operation failed:', error);
       toast.error('采购失败: ' + (error instanceof Error ? error.message : String(error)));
     }
+    console.log('=== End App.tsx Purchase Handler ===\n');
   };
 
   const handleDiscard = async (bookId: number, quantity: number) => {
+    console.log('\n=== App.tsx Discard Handler ===');
+    console.log('Parameters received:', { bookId, quantity });
+
     try {
-      await discardBook(bookId, quantity);
-      setBooks(
-        books.map((book) =>
-          book.id === bookId
-            ? {
-                ...book,
-                totalQuantity: Math.max(0, book.totalQuantity - quantity),
-                stockQuantity: Math.max(0, book.stockQuantity - quantity),
-              }
-            : book
-        )
-      );
+      console.log('Calling discardBook API...');
+      const result = await discardBook(bookId, quantity);
+      console.log('discardBook API result:', result);
+
+      console.log('Refreshing book list...');
+      const updatedBooks = await getBookList();
+      console.log('Updated books received:', updatedBooks.length, 'books');
+
+      // 查找更新后的特定图书
+      const updatedBook = updatedBooks.find((book: Book) => book.id === bookId);
+      if (updatedBook) {
+        console.log('Updated book details:', {
+          id: updatedBook.id,
+          title: updatedBook.title,
+          bookItemsCount: updatedBook.bookItems?.length || 0,
+          availableCount: updatedBook.bookItems?.filter((item: any) => item.status === 'available').length || 0,
+          damagedCount: updatedBook.bookItems?.filter((item: any) => item.status === 'damaged').length || 0,
+          bookItems: updatedBook.bookItems
+        });
+      }
+
+      setBooks(updatedBooks);
       toast.success('废弃成功');
+      console.log('Discard operation completed successfully');
     } catch (error) {
+      console.error('Discard operation failed:', error);
       toast.error('废弃失败: ' + (error instanceof Error ? error.message : String(error)));
+    }
+    console.log('=== End App.tsx Discard Handler ===\n');
+  };
+
+  const handleUpdateBookItemStatus = async (itemId: number, status: string) => {
+    try {
+      console.log('Updating book item status:', { itemId, status });
+      await updateBookItemStatus(itemId, status);
+      // 刷新整个图书列表以获取更新后的数据
+      const updatedBooks = await getBookList();
+      setBooks(updatedBooks);
+      toast.success('图书状态更新成功');
+    } catch (error) {
+      console.error('Book item status update failed:', error);
+      toast.error('状态更新失败: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -240,23 +277,14 @@ export default function App() {
   };
 
   // 借阅管理函数
-  const handleBorrow = async (bookId: number, readerId: number) => {
+  const handleBorrow = async (bookId: number, readerId: number, itemId: number) => {
     try {
-      const newRecord = await borrowBook(bookId, readerId);
+      const newRecord = await borrowBook(bookId, readerId, itemId);
       setBorrowRecords([...borrowRecords, newRecord]);
 
-      // 更新图书库存和借阅次数
-      setBooks(
-        books.map((book) =>
-          book.id === bookId
-            ? {
-                ...book,
-                stockQuantity: book.stockQuantity - 1,
-                borrowTimes: book.borrowTimes + 1,
-              }
-            : book
-        )
-      );
+      // Update book borrow times and refresh book list to get updated bookItems
+      const updatedBooks = await getBookList();
+      setBooks(updatedBooks);
 
       // 更新读者已借数量
       setReaders(
@@ -285,14 +313,9 @@ export default function App() {
         )
       );
 
-      // 更新图书库存
-      setBooks(
-        books.map((book) =>
-          book.id === updatedRecord.bookId
-            ? { ...book, stockQuantity: book.stockQuantity + 1 }
-            : book
-        )
-      );
+      // Refresh book list to get updated bookItems
+      const updatedBooks = await getBookList();
+      setBooks(updatedBooks);
 
       // 更新读者已借数量
       setReaders(
@@ -328,10 +351,19 @@ export default function App() {
     return date.toISOString().split('T')[0];
   };
 
+  const totalBooks = books.reduce((sum, book) => {
+    return sum + (book.bookItems?.length || 0);
+  }, 0);
+  
+  const availableBooks = books.reduce((sum, book) => {
+    if (book.isDeleted === 1) return sum;
+    return sum + (book.bookItems?.filter(item => item.status === 'available')?.length || 0);
+  }, 0);
+  
   // 计算统计数据
   const stats = {
-    totalBooks: books.reduce((sum, book) => sum + book.totalQuantity, 0),
-    availableBooks: books.reduce((sum, book) => sum + book.stockQuantity, 0),
+    totalBooks: totalBooks,
+    availableBooks: availableBooks,
     totalReaders: readers.length,
     activeBorrows: borrowRecords.filter((r) => r && (r.status === '借出' || r.status === '逾期')).length,
     overdueBooks: borrowRecords.filter((r) => r && r.status === '逾期').length,
@@ -362,6 +394,7 @@ export default function App() {
     { id: 'statistics' as Page, label: '查询统计', icon: BarChart },
   ] : [
     { id: 'dashboard' as Page, label: '我的概览', icon: Library },
+    { id: 'browse-books' as Page, label: '图书浏览', icon: BookOpen },
     { id: 'my-borrows' as Page, label: '我的借阅', icon: BookMarked },
   ];
 
@@ -461,6 +494,7 @@ export default function App() {
                 onDeleteBook={handleDeleteBook}
                 onPurchase={handlePurchase}
                 onDiscard={handleDiscard}
+                onUpdateBookItemStatus={handleUpdateBookItemStatus}
               />
             )}
             {currentPage === 'readers' && userRole === 'admin' && (
@@ -481,6 +515,17 @@ export default function App() {
                 onRenew={handleRenew}
               />
             )}
+            {currentPage === 'browse-books' && userRole === 'reader' && (
+              <ReaderBookBrowser
+                username={username}
+                books={books}
+                readers={readers}
+                borrowRecords={borrowRecords}
+                categories={categories}
+                onBorrow={handleBorrow}
+                onReturn={handleReturn}
+              />
+            )}
             {currentPage === 'my-borrows' && userRole === 'reader' && (
               <ReaderBorrowManagement
                 username={username}
@@ -492,7 +537,7 @@ export default function App() {
               />
             )}
             {currentPage === 'statistics' && userRole === 'admin' && (
-              <QueryStatistics books={books} readers={readers} borrowRecords={borrowRecords} />
+              <QueryStatistics books={books} readers={readers} borrowRecords={borrowRecords} categories={categories} />
             )}
           </div>
         </main>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cangli.mapper.BookItemMapper">
+    <select id="findByBookId" resultType="com.cangli.pojo.BookItem">
+        select * from book_items where book_id = #{id}
+    </select>
+
+    <insert id="addBookItem">
+        insert into book_items (book_id, barcode, location, status, price_at_entry, entry_date, notes)
+        values (#{bookId}, #{barcode}, #{location}, #{status}, #{priceAtEntry}, #{entryDate}, #{notes})
+    </insert>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        insert into book_items (book_id, barcode, location, status, price_at_entry, entry_date, notes)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.bookId}, #{item.barcode}, #{item.location}, #{item.status}, #{item.priceAtEntry}, #{item.entryDate}, #{item.notes})
+        </foreach>
+    </insert>
+
+    <select id="findByBookIdAndStatus" resultType="com.cangli.pojo.BookItem">
+        select * from book_items where book_id = #{bookId} and status = #{status}
+    </select>
+
+    <update id="updateStatus">
+        update book_items set status = #{status} where id = #{id}
+    </update>
+
+    <update id="batchUpdateStatus">
+        update book_items set status = #{status} where id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+</mapper>

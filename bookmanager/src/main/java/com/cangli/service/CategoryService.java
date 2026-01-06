@@ -44,4 +44,9 @@ public class CategoryService implements CategoryServiceTrait {
     public List<Category> findAll() {
         return categoryMapper.findAll();
     }
+
+    @Override
+    public Category findById(Integer id) {
+        return categoryMapper.findById(id);
+    }
 }

@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -12,13 +9,22 @@ import type { Book } from './BookManagement';
 import type { Reader } from './ReaderManagement';
 import type { BorrowRecord } from './BorrowManagement';
 
+type Category = {
+  id: number;
+  name: string;
+  code: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 interface QueryStatisticsProps {
   books: Book[];
   readers: Reader[];
   borrowRecords: BorrowRecord[];
+  categories: Category[];
 }
 
-export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisticsProps) {
+export function QueryStatistics({ books, readers, borrowRecords, categories }: QueryStatisticsProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
@@ -44,11 +50,12 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
 
   // 分类统计
   const categoryStats = books.reduce((acc, book) => {
-    const category = book.category || '未分类';
-    if (!acc[category]) {
-      acc[category] = 0;
+    // 根据 categoryId 查找分类名称
+    const categoryName = categories.find(cat => cat.id === book.categoryId)?.name || book.category || '未分类';
+    if (!acc[categoryName]) {
+      acc[categoryName] = 0;
     }
-    acc[category] += book.totalQuantity;
+    acc[categoryName] += book.bookItems?.length || 0;
     return acc;
   }, {} as Record<string, number>);
 
@@ -64,8 +71,14 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
   const totalOverdueFine = overdueRecords.reduce((sum, r) => sum + r.overdueFine, 0);
 
   // 库存查询
-  const lowStockBooks = books.filter((b) => b.stockQuantity < 3 && b.stockQuantity > 0);
-  const outOfStockBooks = books.filter((b) => b.stockQuantity === 0);
+  const lowStockBooks = books.filter((b) => {
+    const availableQuantity = b.bookItems?.filter(item => item.status === 'available')?.length || 0;
+    return availableQuantity < 3 && availableQuantity > 0;
+  });
+  const outOfStockBooks = books.filter((b) => {
+    const availableQuantity = b.bookItems?.filter(item => item.status === 'available')?.length || 0;
+    return availableQuantity === 0;
+  });
 
   const filteredBorrowRecords = borrowRecords.filter((record) => {
     const book = books.find((b) => b.id === record.bookId);
@@ -145,7 +158,7 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
                       fill="#8884d8"
                       dataKey="value"
                     >
-                      {categoryData.map((entry, index) => (
+                      {categoryData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -221,35 +234,42 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {outOfStockBooks.map((book) => (
-                      <TableRow key={book.id}>
-                        <TableCell className="font-mono text-sm">{book.code}</TableCell>
-                        <TableCell>{book.title}</TableCell>
-                        <TableCell>{book.author}</TableCell>
-                        <TableCell>{book.category}</TableCell>
-                        <TableCell className="text-red-600">{book.stockQuantity}</TableCell>
-                        <TableCell>
-                          <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm">
-                            {/* 已售罄 */}
-                            已借完
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {lowStockBooks.map((book) => (
-                      <TableRow key={book.id}>
-                        <TableCell className="font-mono text-sm">{book.code}</TableCell>
-                        <TableCell>{book.title}</TableCell>
-                        <TableCell>{book.author}</TableCell>
-                        <TableCell>{book.category}</TableCell>
-                        <TableCell className="text-orange-600">{book.stockQuantity}</TableCell>
-                        <TableCell>
-                          <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-sm">
-                            库存不足
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {outOfStockBooks.map((book) => {
+                      const availableQuantity = book.bookItems?.filter(item => item.status === 'available')?.length || 0;
+                      const categoryName = categories.find(cat => cat.id === book.categoryId)?.name || book.category || '未知分类';
+                      return (
+                        <TableRow key={book.id}>
+                          <TableCell className="font-mono text-sm">{book.code}</TableCell>
+                          <TableCell>{book.title}</TableCell>
+                          <TableCell>{book.author}</TableCell>
+                          <TableCell>{categoryName}</TableCell>
+                          <TableCell className="text-red-600">{availableQuantity}</TableCell>
+                          <TableCell>
+                            <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm">
+                              已借完
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {lowStockBooks.map((book) => {
+                      const availableQuantity = book.bookItems?.filter(item => item.status === 'available')?.length || 0;
+                      const categoryName = categories.find(cat => cat.id === book.categoryId)?.name || book.category || '未知分类';
+                      return (
+                        <TableRow key={book.id}>
+                          <TableCell className="font-mono text-sm">{book.code}</TableCell>
+                          <TableCell>{book.title}</TableCell>
+                          <TableCell>{book.author}</TableCell>
+                          <TableCell>{categoryName}</TableCell>
+                          <TableCell className="text-orange-600">{availableQuantity}</TableCell>
+                          <TableCell>
+                            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-sm">
+                              库存不足
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {lowStockBooks.length === 0 && outOfStockBooks.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center text-gray-500 py-8">
@@ -327,10 +347,10 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
                       return (
                         <TableRow key={record.id}>
                           <TableCell>{book?.title || record.bookTitle || '未知'}</TableCell>
-                          <TableCell>{book?.author || record.bookAuthor || '未知'}</TableCell>
-                          <TableCell>{book?.isbn || record.bookIsbn || '未知'}</TableCell>
-                          <TableCell>{book?.publisher || record.bookPublisher || '未知'}</TableCell>
-                          <TableCell>{book?.category || record.bookCategory || '未知'}</TableCell>
+                          <TableCell>{book?.author || '未知'}</TableCell>
+                          <TableCell>{book?.isbn || '未知'}</TableCell>
+                          <TableCell>{book?.publisher || '未知'}</TableCell>
+                          <TableCell>{book?.category || '未知'}</TableCell>
                           <TableCell>{reader?.name || '未知'}</TableCell>
                           <TableCell>{record.borrowDate}</TableCell>
                           <TableCell>{record.dueDate}</TableCell>
@@ -410,10 +430,10 @@ export function QueryStatistics({ books, readers, borrowRecords }: QueryStatisti
                       return (
                         <TableRow key={record.id}>
                           <TableCell>{book?.title || record.bookTitle || '未知'}</TableCell>
-                          <TableCell>{book?.author || record.bookAuthor || '未知'}</TableCell>
-                          <TableCell>{book?.isbn || record.bookIsbn || '未知'}</TableCell>
-                          <TableCell>{book?.publisher || record.bookPublisher || '未知'}</TableCell>
-                          <TableCell>{book?.category || record.bookCategory || '未知'}</TableCell>
+                          <TableCell>{book?.author || '未知'}</TableCell>
+                          <TableCell>{book?.isbn || '未知'}</TableCell>
+                          <TableCell>{book?.publisher || '未知'}</TableCell>
+                          <TableCell>{book?.category || '未知'}</TableCell>
                           <TableCell>{reader?.name || '未知'}</TableCell>
                           <TableCell>{record.borrowDate}</TableCell>
                           <TableCell className="text-red-600">{record.dueDate}</TableCell>

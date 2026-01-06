@@ -1,13 +1,16 @@
 package com.cangli.service;
 
+import com.cangli.mapper.BookItemMapper;
 import com.cangli.mapper.BookMapper;
 import com.cangli.pojo.Book;
+import com.cangli.pojo.BookItem;
 import com.cangli.pojo.Category;
 import com.cangli.service.impl.BookServiceTrait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -18,21 +21,35 @@ public class BookService implements BookServiceTrait {
     private BookMapper bookMapper;
 
     @Autowired
+    private BookItemService bookItemService;
+
+    @Autowired
     private CategoryService categoryService; // 假设有类别服务
 
     public List<Book> findAll() {
-        return bookMapper.findAll();
+
+        List<Book> books = bookMapper.findAll();
+        for (Book book : books) {
+            List<BookItem> findItems = bookItemService.findByBookId(book.getId());
+            book.setBookItems(findItems);
+        }
+        return books;
+
     }
 
     @Override
     @Transactional
     public void addBook(Book book) {
         // 1. 数据校验
-        validateBookData(book);
 
         // 2. 生成图书代码
-        String code = generateBookCode(book.getCategory());
-        book.setCode(code);
+        Category category = categoryService.findById(book.getCategoryId());
+
+        String prefix = generateBookCode(category.getCode());
+        // 生成唯一ID
+        long timestamp = System.currentTimeMillis();
+        String idStr = String.format("%04d", timestamp % 10000);
+        book.setCode(prefix + idStr);
 
         // 3. 设置默认值
         if (book.getBorrowTimes() == null) {
@@ -42,18 +59,24 @@ public class BookService implements BookServiceTrait {
             book.setEntryDate(new Date());
         }
 
-        // 4. 插入数据库
+        // 4. 插入数据库（不插入BookItems，因为添加图书时没有库存）
         bookMapper.addBook(book);
     }
 
     @Transactional
     public void updateBook(Book book) {
-        validateBookData(book);
         bookMapper.updateBook(book);
     }
 
     @Transactional
     public void deleteBook(Long id) {
+        // 检查是否有BookItems
+        List<BookItem> bookItems = bookItemService.findByBookId(id);
+        if (bookItems != null && !bookItems.isEmpty()) {
+            throw new IllegalArgumentException("deleteBook: 无法删除图书，因为该图书还有库存副本");
+        }
+
+        // 没有BookItems，可以安全删除
         bookMapper.softDeleteBook(id);
     }
 
@@ -63,58 +86,59 @@ public class BookService implements BookServiceTrait {
         if (book == null) {
             throw new IllegalArgumentException("purchaseBook: 图书不存在");
         }
-        book.setTotalQuantity(book.getTotalQuantity() + quantity);
-        book.setStockQuantity(book.getStockQuantity() + quantity);
-        bookMapper.updateBook(book);
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("purchaseBook: 采购数量必须大于0");
+        }
+
+        // 生成指定数量的BookItems
+        List<BookItem> newBookItems = new ArrayList<>();
+        for (int i = 0; i < quantity; i++) {
+            BookItem bookItem = new BookItem();
+            bookItem.setBookId(id.intValue());
+            bookItem.setBarcode(generateBarcode(id, i));
+            bookItem.setLocation("默认位置"); // 可以后续修改
+            bookItem.setStatus("available");
+            bookItem.setPriceAtEntry(book.getPrice());
+            bookItem.setEntryDate(new Date());
+            bookItem.setNotes("采购自: " + (supplier != null ? supplier : "未知供应商"));
+            newBookItems.add(bookItem);
+        }
+
+        // 批量插入BookItems
+        bookItemService.batchInsert(newBookItems);
     }
 
     @Transactional
     public void discardBook(Long id, Integer quantity) {
         Book book = bookMapper.findById(id);
         if (book == null) {
-            throw new IllegalArgumentException("图书不存在");
+            throw new IllegalArgumentException("discardBook: 图书不存在");
         }
-        if (book.getStockQuantity() < quantity) {
-            throw new IllegalArgumentException("库存不足");
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("discardBook: 丢弃数量必须大于0");
         }
-        book.setTotalQuantity(book.getTotalQuantity() - quantity);
-        book.setStockQuantity(book.getStockQuantity() - quantity);
-        bookMapper.updateBook(book);
+
+        // 获取可用的BookItems
+        List<BookItem> availableItems = bookItemService.findByBookIdAndStatus(id, "available");
+        if (availableItems.size() < quantity) {
+            throw new IllegalArgumentException("discardBook: 可用图书数量不足，无法丢弃 " + quantity + " 本");
+        }
+
+        // 选择前quantity个BookItems进行丢弃
+        StringBuilder idsToUpdate = new StringBuilder();
+        for (int i = 0; i < quantity; i++) {
+            if (i > 0) idsToUpdate.append(",");
+            idsToUpdate.append(availableItems.get(i).getId());
+        }
+
+        // 批量更新状态为damaged（丢弃的书视为损坏）
+        bookItemService.batchUpdateStatus(idsToUpdate.toString(), "damaged");
     }
 
-    /**
-     * 校验图书数据
-     */
-    private void validateBookData(Book book) {
-        if (book.getTitle() == null || book.getTitle().trim().isEmpty()) {
-            throw new IllegalArgumentException("图书标题不能为空");
-        }
-
-        if (book.getAuthor() == null || book.getAuthor().trim().isEmpty()) {
-            throw new IllegalArgumentException("图书作者不能为空");
-        }
-
-        if (book.getCategory() == null || book.getCategory().trim().isEmpty()) {
-            throw new IllegalArgumentException("图书分类不能为空");
-        }
-
-        if (book.getTotalQuantity() == null || book.getTotalQuantity() < 0) {
-            throw new IllegalArgumentException("总数量必须大于等于0");
-        }
-
-        if (book.getStockQuantity() == null || book.getStockQuantity() < 0) {
-            throw new IllegalArgumentException("库存数量必须大于等于0");
-        }
-
-        if (book.getStockQuantity() > book.getTotalQuantity()) {
-            throw new IllegalArgumentException("库存数量不能超过总数量");
-        }
-
-        if (book.getPrice() != null && book.getPrice() < 0) {
-            throw new IllegalArgumentException("价格不能为负数");
-        }
+    @Transactional
+    public void updateBookItemStatus(Integer itemId, String status) {
+        bookItemService.updateStatus(itemId, status);
     }
-
     /**
      * 根据分类生成图书代码
      */
@@ -134,5 +158,13 @@ public class BookService implements BookServiceTrait {
         String idStr = String.format("%04d", timestamp % 10000); // 取后4位
 
         return prefix + "-" + idStr;
+    }
+
+    /**
+     * 生成图书条形码
+     */
+    private String generateBarcode(Long bookId, int sequence) {
+        long timestamp = System.currentTimeMillis();
+        return String.format("BK%06d%03d%02d", bookId, timestamp % 1000, sequence % 100);
     }
 }
