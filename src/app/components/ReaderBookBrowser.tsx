@@ -38,7 +38,7 @@ import type { BorrowRecord } from "./BorrowManagement";
 import type { Reader } from "./ReaderManagement";
 
 interface ReaderBookBrowserProps {
-  username: string;
+  currentReader: any;
   books: Book[];
   readers: Reader[];
   borrowRecords: BorrowRecord[];
@@ -54,7 +54,7 @@ interface ReaderBookBrowserProps {
 }
 
 export function ReaderBookBrowser({
-  username,
+  currentReader,
   books,
   readers,
   borrowRecords,
@@ -67,7 +67,7 @@ export function ReaderBookBrowser({
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isBorrowDialogOpen, setIsBorrowDialogOpen] = useState(false);
 
-  const currentReader = readers.find((r) => r.name === username);
+  // 使用传递的currentReader
   const readerId = currentReader?.id;
   const myBorrowRecords = borrowRecords.filter(
     (r) => r && r.readerId === readerId

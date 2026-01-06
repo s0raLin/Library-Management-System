@@ -2,6 +2,7 @@ package com.cangli.service;
 
 import com.cangli.mapper.ReaderMapper;
 import com.cangli.pojo.Reader;
+import com.cangli.pojo.User;
 import com.cangli.service.impl.ReaderServiceTrait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,16 @@ public class ReaderService implements ReaderServiceTrait {
     @Transactional
     public void deleteReader(Long id) {
         readerMapper.deleteReader(id);
+    }
+
+    @Override
+    public User findByUserNameAndPassword(String username, String password) {
+        return readerMapper.findByUserNameAndPassword(username, password);
+    }
+
+    public Reader findReaderByUserNameAndPassword(String username, String password) {
+
+        return readerMapper.findReaderByUserNameAndPassword(username, password);
     }
 
     private void validateReaderData(Reader reader) {

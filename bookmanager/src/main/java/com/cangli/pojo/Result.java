@@ -17,6 +17,9 @@ public class Result {
     public static Result ok() {
         return new Result(200, "成功", null);
     }
+    public static Result ok(String msg) {
+        return new Result(200, msg, null);
+    }
 
     public static Result ok(Object data) {
         return new Result(200, "成功", data);

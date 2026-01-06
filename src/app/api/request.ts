@@ -14,7 +14,7 @@ const instance = axios.create({
 instance.interceptors.request.use(
   config => {
     console.log('Making request:', config.method?.toUpperCase(), config.url);
-    // 示例：添加 Token（从 localStorage 或 Vuex 获取）
+    // 添加 Token（从 localStorage 获取）
     const token = localStorage.getItem('token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
@@ -46,8 +46,11 @@ instance.interceptors.response.use(
     console.error('Request failed:', error.config?.url, error.message);
     // 统一错误处理（如 401 跳转登录、网络错误提示）
     if (error.response?.status === 401) {
+      // 清除本地存储的token和登录信息
+      localStorage.removeItem('token');
+      localStorage.removeItem('library_login');
       // 跳转登录页
-      window.location.href = '/login';
+      window.location.href = '/';
     }
     console.error('请求错误:', error.message);
     console.error('完整错误信息:', error);
@@ -63,7 +66,11 @@ export function get(url: string, params = {}): Promise<any> {
 }
 
 export function post(url: string, data = {}) {
-  return instance.post(url, data);
+  return instance.post(url, data, {
+    headers: {
+      'Content-Type': 'application/json;charset=UTF-8'
+    }
+  });
 }
 
 export function put(url: string, data = {}) {

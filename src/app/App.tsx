@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Toaster } from './components/ui/sonner';
 import { LoginPage } from './components/LoginPage';
 import { Dashboard } from './components/Dashboard';
@@ -39,6 +39,10 @@ export default function App() {
     const saved = localStorage.getItem('library_login');
     return saved ? JSON.parse(saved).userRole : 'admin';
   });
+  const [currentReader, setCurrentReader] = useState<any>(() => {
+    const saved = localStorage.getItem('library_login');
+    return saved ? JSON.parse(saved).readerInfo : null;
+  });
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -49,7 +53,7 @@ export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   
-  // 路由保护：确保用户只能访问允许的页面
+  // 路由保护
   useEffect(() => {
     if (isLoggedIn && userRole === 'reader') {
       const allowedPages: Page[] = ['dashboard', 'my-borrows', 'browse-books'];
@@ -69,12 +73,9 @@ export default function App() {
         const sampleReaders: Reader[] = await getReaderList()
         // 示例借阅记录
         const sampleRecords: BorrowRecord[] = await getBorrowList()
-        console.log("App.tsx: sampleRecords from API:", sampleRecords)
         const filteredRecords = sampleRecords.filter(r => sampleBooks.some(b => b.id === r.bookId));
-        console.log("App.tsx: filteredRecords after book filter:", filteredRecords)
         // 获取类别
         const sampleCategories: Category[] = await getCategoryMap()
-        console.log('Loaded categories:', sampleCategories);
 
         setBooks(sampleBooks)
         setReaders(sampleReaders)
@@ -95,15 +96,17 @@ export default function App() {
   }, []);
 
   // 登录处理
-  const handleLogin = (user: string, role: 'admin' | 'reader') => {
+  const handleLogin = (user: string, role: 'admin' | 'reader', readerInfo?: any) => {
     setUsername(user);
     setUserRole(role);
+    setCurrentReader(readerInfo);
     setIsLoggedIn(true);
     setCurrentPage('dashboard'); // 确保登录后默认到dashboard
     localStorage.setItem('library_login', JSON.stringify({
       isLoggedIn: true,
       username: user,
-      userRole: role
+      userRole: role,
+      readerInfo: readerInfo
     }));
   };
 
@@ -111,8 +114,10 @@ export default function App() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUsername('');
+    setCurrentReader(null);
     setCurrentPage('dashboard');
     localStorage.removeItem('library_login');
+    localStorage.removeItem('token'); // 清除token
   };
 
   // 图书管理函数
@@ -484,7 +489,7 @@ export default function App() {
         <main className="flex-1 p-4 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {currentPage === 'dashboard' && userRole === 'admin' && <Dashboard stats={stats} recentBorrows={recentBorrows} />}
-            {currentPage === 'dashboard' && userRole === 'reader' && <ReaderDashboard username={username} borrowRecords={borrowRecords} books={books} readers={readers} />}
+            {currentPage === 'dashboard' && userRole === 'reader' && <ReaderDashboard currentReader={currentReader} borrowRecords={borrowRecords} books={books} readers={readers} />}
             {currentPage === 'books' && userRole === 'admin' && (
               <BookManagement
                 books={books}
@@ -517,7 +522,7 @@ export default function App() {
             )}
             {currentPage === 'browse-books' && userRole === 'reader' && (
               <ReaderBookBrowser
-                username={username}
+                currentReader={currentReader}
                 books={books}
                 readers={readers}
                 borrowRecords={borrowRecords}
@@ -528,7 +533,7 @@ export default function App() {
             )}
             {currentPage === 'my-borrows' && userRole === 'reader' && (
               <ReaderBorrowManagement
-                username={username}
+                currentReader={currentReader}
                 books={books}
                 readers={readers}
                 borrowRecords={borrowRecords}
