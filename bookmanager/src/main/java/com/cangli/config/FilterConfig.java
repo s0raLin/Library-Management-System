@@ -19,7 +19,7 @@ class MyFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        System.out.println("Filter: " + request.getRequestURI());
+        System.out.println("Filter: "+"Method: "+request.getMethod()+", Router: "+ request.getRequestURI());
         // 前置处理...
 //        if(Objects.equals(request.getRequestURI(), "/login")) {
 //            filterChain.doFilter(request, response);  // 放行

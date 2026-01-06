@@ -3,7 +3,9 @@ package com.cangli.service;
 import com.cangli.mapper.BookMapper;
 import com.cangli.mapper.BorrowRecordMapper;
 import com.cangli.mapper.ReaderMapper;
+import com.cangli.service.BookItemService;
 import com.cangli.pojo.Book;
+import com.cangli.pojo.BookItem;
 import com.cangli.pojo.BorrowRecord;
 import com.cangli.pojo.Reader;
 import com.cangli.service.impl.BorrowRecordTrait;
@@ -26,6 +28,9 @@ public class BorrowRecordService implements BorrowRecordTrait {
     @Autowired
     private ReaderMapper readerMapper;
 
+    @Autowired
+    private BookItemService bookItemService;
+
     @Override
     public List<BorrowRecord> findAll() {
         List<BorrowRecord> records = borrowRecordMapper.findAll();
@@ -34,14 +39,11 @@ public class BorrowRecordService implements BorrowRecordTrait {
     }
 
     @Transactional
-    public BorrowRecord borrowBook(Long bookId, Long readerId) {
+    public BorrowRecord borrowBook(Long bookId, Long readerId, Integer itemId) {
         // 检查图书是否存在且有库存
         Book book = bookMapper.findById(bookId);
         if (book == null) {
             throw new IllegalArgumentException("图书不存在");
-        }
-        if (book.getStockQuantity() <= 0) {
-            throw new IllegalArgumentException("图书库存不足");
         }
 
         // 检查读者是否存在
@@ -50,10 +52,18 @@ public class BorrowRecordService implements BorrowRecordTrait {
             throw new IllegalArgumentException("读者不存在");
         }
 
+        // 检查BookItem是否存在且可用
+        BookItem bookItem = bookItemService.findByBookId(bookId).stream()
+            .filter(item -> item.getId().equals(itemId) && "available".equals(item.getStatus()))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("图书副本不存在或不可借阅"));
+
         // 创建借阅记录
         BorrowRecord record = new BorrowRecord();
         record.setBookId(bookId);
+        record.setBookTitle(book.getTitle());
         record.setReaderId(readerId);
+        record.setItemId(itemId);
         record.setBorrowDate(new Date());
 
         // 设置应还日期（30天后）
@@ -63,18 +73,13 @@ public class BorrowRecordService implements BorrowRecordTrait {
 
         record.setStatus("借出");
 
-        // 设置冗余的图书信息
-        record.setBookTitle(book.getTitle());
-        record.setBookAuthor(book.getAuthor());
-        record.setBookIsbn(book.getIsbn());
-        record.setBookPublisher(book.getPublisher());
-        record.setBookCategory(book.getCategory());
-
         // 插入借阅记录
         borrowRecordMapper.addBorrowRecord(record);
 
-        // 更新图书库存和借阅次数
-        book.setStockQuantity(book.getStockQuantity() - 1);
+        // 更新图书副本状态为已借出
+        bookItemService.updateStatus(itemId, "borrowed");
+
+        // 更新图书借阅次数
         book.setBorrowTimes(book.getBorrowTimes() + 1);
         bookMapper.updateBook(book);
 
@@ -100,10 +105,12 @@ public class BorrowRecordService implements BorrowRecordTrait {
         record.setStatus("已还");
         borrowRecordMapper.updateBorrowRecord(record);
 
+        // 更新图书副本状态为可用
+        bookItemService.updateStatus(record.getItemId(), "available");
+
         // 更新图书库存
         Book book = bookMapper.findById(record.getBookId());
         if (book != null) {
-            book.setStockQuantity(book.getStockQuantity() + 1);
             bookMapper.updateBook(book);
         }
 

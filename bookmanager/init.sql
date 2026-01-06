@@ -1,112 +1,88 @@
-use test;
+create table admin (
+    id int auto_increment comment '管理员ID' primary key,
+    username varchar(50) not null comment '用户名',
+    password varchar(255) not null comment '密码',
+    role varchar(20) default '管理员' null comment '权限角色',
+    constraint username unique (username)
+) comment '管理员表' collate = utf8mb4_uca1400_ai_ci;
 
--- 1. 管理员表
-CREATE TABLE admin (
-    id INT AUTO_INCREMENT COMMENT '管理员ID',
-    username VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
-    password VARCHAR(255) NOT NULL COMMENT '密码',
-    role VARCHAR(20) DEFAULT '管理员' COMMENT '权限角色',
-    PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员表';
+create table book (
+    id int auto_increment comment '图书ID（内部主键）' primary key,
+    code varchar(50) not null comment '图书编码（如：TP312-001）',
+    title varchar(200) not null comment '书名',
+    author varchar(100) null comment '作者',
+    publisher varchar(100) null comment '出版社',
+    isbn varchar(20) null comment 'ISBN号',
+    category_id int not null comment '分类Id',
+    publish_date date null comment '出版日期',
+    price decimal(10, 2) default 0.00 null comment '价格',
+    entry_date date not null comment '入库日期',
+    borrow_times int default 0 null comment '被借阅次数',
+    is_deleted tinyint(1) default 0 null comment '是否已删除：0-未删除，1-已删除',
+    description text null comment '详情',
+    cover_url varchar(255) null comment '封面页',
+    constraint code unique (code)
+) comment '图书表' collate = utf8mb4_uca1400_ai_ci;
 
--- 2. 读者表
-CREATE TABLE reader (
-    id INT AUTO_INCREMENT COMMENT '读者ID',
-    name VARCHAR(50) NOT NULL COMMENT '姓名',
-    gender ENUM('男', '女', '未知') DEFAULT '未知' COMMENT '性别',
-    class_dept VARCHAR(100) COMMENT '班级（如: 软件231， 计算机系）',
-    reader_type ENUM('学生', '教师') NOT NULL COMMENT '读者类型',
-    contact VARCHAR(100) COMMENT '联系方式（电话或邮箱）',
-    borrow_limit INT DEFAULT 3 COMMENT '借书限额（学生默认3本，教师可设更高）',
-    borrowed_count INT DEFAULT 0 COMMENT '当前已借数量',
-    PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='读者表';
+create table book_items (
+    id int auto_increment primary key,
+    book_id int not null,
+    barcode varchar(50) not null comment '每本书唯一的条码',
+    location varchar(100) null comment '具体馆藏位置',
+    status enum (
+        'available',
+        'borrowed',
+        'damaged',
+        'lost',
+        'repairing',
+        'reserved',
+        'internal'
+    ) default 'available' null,
+    price_at_entry decimal(10, 2) null comment '入库时单价',
+    entry_date date not null,
+    notes varchar(255) null,
+    constraint barcode unique (barcode),
+    constraint `1` foreign key (book_id) references book (id) on delete cascade
+) comment '图书实体表';
 
--- 3. 图书表
-CREATE TABLE book (
-    id INT AUTO_INCREMENT COMMENT '图书ID（内部主键）',
-    code VARCHAR(50) NOT NULL UNIQUE COMMENT '图书编码（如：TP312-001）',
-    title VARCHAR(200) NOT NULL COMMENT '书名',
-    author VARCHAR(100) COMMENT '作者',
-    publisher VARCHAR(100) COMMENT '出版社',
-    isbn VARCHAR(20) COMMENT 'ISBN号',
-    category VARCHAR(50) COMMENT '分类（如：文学、计算机、自然科学）',
-    publish_date DATE COMMENT '出版日期',
-    price DECIMAL(10,2) DEFAULT 0.00 COMMENT '价格',
-    entry_date DATE NOT NULL COMMENT '入库日期',
-    total_quantity INT NOT NULL DEFAULT 0 COMMENT '总数量（累计入库数量）',
-    stock_quantity INT NOT NULL DEFAULT 0 COMMENT '当前库存量（可借数量）',
-    borrow_times INT DEFAULT 0 COMMENT '被借阅次数',
-    is_deleted TINYINT(1) DEFAULT 0 COMMENT '是否已删除：0-未删除，1-已删除',
-    PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='图书表';
+create table borrow_record (
+    id int auto_increment comment '借阅记录ID' primary key,
+    book_id int not null comment '图书ID',
+    reader_id int not null comment '读者ID',
+    borrow_date date not null comment '借出日期',
+    due_date date not null comment '应还日期',
+    return_date date null comment '实际还书日期（NULL表示未还）',
+    overdue_fine decimal(8, 2) default 0.00 null comment '逾期罚款金额',
+    status enum ('借出', '已还', '逾期', '丢失', '损坏') default '借出' null comment '借阅状态',
+    item_id int not null comment '关联的具体书'
+) comment '借阅记录表' collate = utf8mb4_uca1400_ai_ci;
 
--- 5. 借阅记录表
-CREATE TABLE borrow_record (
-    id INT AUTO_INCREMENT COMMENT '借阅记录ID',
-    book_id INT NOT NULL COMMENT '图书ID',
-    reader_id INT NOT NULL COMMENT '读者ID',
-    borrow_date DATE NOT NULL COMMENT '借出日期',
-    due_date DATE NOT NULL COMMENT '应还日期',
-    return_date DATE NULL COMMENT '实际还书日期（NULL表示未还）',
-    overdue_fine DECIMAL(8,2) DEFAULT 0.00 COMMENT '逾期罚款金额',
-    status ENUM('借出', '已还', '逾期') DEFAULT '借出' COMMENT '借阅状态',
-    PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='借阅记录表';
+create table borrow_rules (
+    id int auto_increment primary key,
+    reader_type enum ('学生', '教师') not null,
+    max_books int not null comment '最大借阅数量',
+    duration_days int not null comment '借阅时长(天)',
+    renew_times int default 3 null comment '可续借次数',
+    constraint reader_type unique (reader_type)
+) comment '借阅规则表';
 
--- 类别表
-CREATE TABLE categories (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(50) NOT NULL UNIQUE COMMENT '类别名称，如：文学、计算机等',
-    code VARCHAR(10) NOT NULL UNIQUE COMMENT '类别代码，如：WX、JSJ等',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+create table categories (
+    id int auto_increment primary key,
+    name varchar(50) not null comment '类别名称，如：文学、计算机等',
+    code varchar(10) not null comment '类别代码，如：WX、JSJ等',
+    created_at timestamp default current_timestamp() null,
+    updated_at timestamp default current_timestamp() null on update current_timestamp(),
+    constraint code unique (code),
+    constraint name unique (name)
 );
 
--- 插入默认类别数据
-INSERT INTO categories (name, code)
-VALUES
-    ('文学', 'WX'),
-    ('计算机', 'JSJ'),
-    ('自然科学', 'ZRKX'),
-    ('社会科学', 'SHKX'),
-    ('艺术', 'YS'),
-    ('历史', 'LS'),
-    ('其他', 'QT');
-
--- 插入借阅记录测试数据
-
--- 1. 管理员表 示例数据（密码请使用加密存储，这里用明文示例，实际用bcrypt等加密）
-INSERT INTO admin (username, password, role) VALUES
-('admin', 'admin123', '管理员'),
-('librarian1', 'lib123456', '管理员'),
-('superadmin', 'super123', '超级管理员');
-
--- 2. 读者表 示例数据
-INSERT INTO reader (name, gender, class_dept, reader_type, contact, borrow_limit, borrowed_count) VALUES
-('张三', '男', '软件231', '学生', 'zhang@example.com', 3, 1),
-('李四', '女', '计算机232', '学生', '13812345678', 3, 0),
-('王老师', '男', '计算机系', '教师', 'wang@school.edu.cn', 10, 2),
-('赵五', '未知', '软件241', '学生', 'zhao@example.com', 3, 0),
-('刘教授', '女', '信息工程系', '教师', 'liu@school.edu.cn', 15, 0);
-
--- 3. 图书表 示例数据（category使用categories表中的name）
--- 假设总数量=库存量+已借出数量，这里部分有借出
-INSERT INTO book (code, title, author, publisher, isbn, category, publish_date, price, entry_date, total_quantity, stock_quantity, borrow_times) VALUES
-('TP312-001', 'C程序设计', '谭浩强', '清华大学出版社', '9787302040682', '计算机', '2005-01-01', 28.00, '2024-01-15', 10, 8, 15),
-('TP312-002', 'Java编程思想', '[美] Bruce Eckel', '机械工业出版社', '9787111213826', '计算机', '2007-06-01', 108.00, '2024-02-20', 8, 6, 20),
-('I246-001', '红楼梦', '曹雪芹', '人民文学出版社', '9787020002207', '文学', '1982-01-01', 59.70, '2023-12-10', 15, 14, 30),
-('I247-002', '平凡的世界', '路遥', '北京十月文艺出版社', '9787530215593', '文学', '2012-03-01', 88.00, '2024-03-05', 12, 10, 25),
-('N-001', '时间简史', '[英] 斯蒂芬·霍金', '湖南科学技术出版社', '9787535735195', '自然科学', '1998-01-01', 28.00, '2023-11-20', 20, 18, 40),
-('Z-001', '相对论', '[德] 阿尔伯特·爱因斯坦', '上海科技教育出版社', '9787542830774', '自然科学', '2006-01-01', 25.00, '2024-04-01', 5, 5, 5),
-('TP316-003', '算法导论', '[美] Thomas H. Cormen 等', '机械工业出版社', '978711۱۴۰7013', '计算机', '2012-09-01', 128.00, '2025-01-10', 6, 4, 10),
-('I313-003', '活着', '余华', '作家出版社', '9787506365437', '文学', '2012-08-01', 20.00, '2025-06-15', 18, 18, 8);
-
--- 4. 借阅记录表 示例数据（部分已还、部分借出、部分逾期）
--- 假设应还日期为借出后30天
-INSERT INTO borrow_record (book_id, reader_id, borrow_date, due_date, return_date, overdue_fine, status) VALUES
-(1, 1, '2025-12-10', '2026-01-09', NULL, 0.00, '借出'),  -- 张三借C程序设计，未还
-(2, 3, '2025-11-15', '2025-12-15', '2025-12-20', 5.00, '已还'),  -- 王老师借Java，已还逾期
-(3, 1, '2025-10-01', '2025-10-31', '2025-11-05', 10.00, '逾期'),  -- 张三借红楼梦，已还但逾期
-(5, 3, '2025-12-20', '2026-01-19', NULL, 0.00, '借出'),  -- 王老师借时间简史，未还
-(7, 3, '2025-12-01', '2025-12-31', '2026-01-02', 2.50, '已还');  -- 王老师借算法导论，已还稍逾期
+create table reader (
+    id int auto_increment comment '读者ID' primary key,
+    name varchar(50) not null comment '姓名',
+    gender enum ('男', '女', '未知') default '未知' null comment '性别',
+    class_dept varchar(100) null comment '班级（如: 软件231， 计算机系）',
+    reader_type enum ('学生', '教师') not null comment '读者类型',
+    contact varchar(100) null comment '联系方式（电话或邮箱）',
+    borrow_limit int default 3 null comment '借书限额（学生默认3本，教师可设更高）',
+    borrowed_count int default 0 null comment '当前已借数量'
+) comment '读者表' collate = utf8mb4_uca1400_ai_ci;

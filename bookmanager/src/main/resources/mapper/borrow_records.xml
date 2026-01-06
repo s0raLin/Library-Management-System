@@ -1,88 +1,82 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.cangli.mapper.BorrowRecordMapper">
-    <resultMap id="borrowRecordResultMap" type="com.cangli.pojo.BorrowRecord">
+
+    <resultMap id="BorrowRecordResultMap" type="com.cangli.pojo.BorrowRecord">
         <id property="id" column="id"/>
-        <result property="bookId" column="book_id"/>
+
         <result property="readerId" column="reader_id"/>
         <result property="borrowDate" column="borrow_date"/>
         <result property="dueDate" column="due_date"/>
         <result property="returnDate" column="return_date"/>
         <result property="overdueFine" column="overdue_fine"/>
         <result property="status" column="status"/>
+
+        <result property="bookId" column="book_id"/>
         <result property="bookTitle" column="book_title"/>
-        <result property="bookAuthor" column="book_author"/>
-        <result property="bookIsbn" column="book_isbn"/>
-        <result property="bookPublisher" column="book_publisher"/>
-        <result property="bookCategory" column="book_category"/>
+        <result property="bookCoverUrl" column="book_cover_url"/>
+
+        <result property="itemId" column="item_id"/>
+        <result property="itemBarcode" column="item_barcode"/>
     </resultMap>
 
-    <select id="findAll" resultMap="borrowRecordResultMap">
-        SELECT br.*,
-               b.title as book_title,
-               b.author as book_author,
-               b.isbn as book_isbn,
-               b.publisher as book_publisher,
-               b.category as book_category
-        FROM borrow_record br
-                 JOIN book b ON br.book_id = b.id
-        WHERE b.is_deleted = 0
-        ORDER BY br.id DESC
-    </select>
-
-<!--    <select id="findAll" resultType="com.cangli.pojo.BorrowRecord">-->
-<!--        SELECT-->
-<!--            br.id,-->
-<!--            br.book_id as bookId,-->
-<!--            br.reader_id as readerId,-->
-<!--            br.borrow_date as borrowDate,-->
-<!--            br.due_date as dubDate,-->
-<!--            br.return_date as returnDate,-->
-<!--            br.overdue_fine as overdueFine,-->
-<!--            br.status,-->
-<!--            b.title as bookTitle,-->
-<!--            b.author as bookAuthor,-->
-<!--            b.isbn as bookIsbn,-->
-<!--            b.publisher as bookPublisher,-->
-<!--            b.category as bookCategory-->
-<!--        FROM borrow_record br-->
-<!--        JOIN book b ON br.book_id = b.id-->
-<!--        WHERE b.is_deleted = 0-->
-<!--        ORDER BY br.id DESC-->
-<!--    </select>-->
-
-    <select id="findById" parameterType="long" resultType="com.cangli.pojo.BorrowRecord">
-        SELECT * FROM borrow_record WHERE id = #{id}
-    </select>
 
     <insert id="addBorrowRecord" parameterType="com.cangli.pojo.BorrowRecord" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO borrow_record (
-            book_id,
-            reader_id,
-            borrow_date,
-            due_date,
-            status
-        ) VALUES (
-                      #{bookId},
-                      #{readerId},
-                      #{borrowDate},
-                      #{dueDate},
-                      #{status}
-                  )
+        INSERT INTO borrow_record (book_id, reader_id, borrow_date, due_date, return_date, overdue_fine, status, item_id)
+        VALUES (#{bookId}, #{readerId}, #{borrowDate}, #{dueDate}, #{returnDate}, #{overdueFine}, #{status}, #{itemId})
     </insert>
 
+    <select id="findById" resultMap="BorrowRecordResultMap">
+        SELECT
+            br.id, br.reader_id, br.borrow_date, br.due_date, br.return_date, br.overdue_fine, br.status,
+            br.book_id, br.item_id,
+            b.title as book_title, b.cover_url AS book_cover_url,
+            bi.barcode AS item_barcode
+        FROM borrow_record br
+                 LEFT JOIN book b ON br.book_id = b.id
+                 LEFT JOIN book_items bi ON br.item_id = bi.id
+        WHERE br.id = #{id}
+    </select>
+
     <update id="updateBorrowRecord" parameterType="com.cangli.pojo.BorrowRecord">
-        UPDATE borrow_record SET
-            book_id = #{bookId},
-            reader_id = #{readerId},
-            borrow_date = #{borrowDate},
-            due_date = #{dueDate},
-            return_date = #{returnDate},
-            overdue_fine = #{overdueFine},
-            status = #{status}
+        UPDATE borrow_record
+        SET return_date = #{returnDate}, overdue_fine = #{overdueFine}, status = #{status}
         WHERE id = #{id}
     </update>
+
+    <select id="findByReaderId" resultMap="BorrowRecordResultMap">
+        SELECT
+            br.id, br.reader_id, br.borrow_date, br.due_date, br.return_date, br.overdue_fine, br.status,
+            br.book_id, br.item_id,
+            b.title as book_title, b.cover_url AS book_cover_url,
+            bi.barcode AS item_barcode
+        FROM borrow_record br
+                 LEFT JOIN book b ON br.book_id = b.id
+                 LEFT JOIN book_items bi ON br.item_id = bi.id
+        WHERE br.reader_id = #{readerId}
+    </select>
+
+    <select id="findAll" resultMap="BorrowRecordResultMap">
+        SELECT
+            br.id, br.reader_id, br.borrow_date, br.due_date, br.return_date, br.overdue_fine, br.status,
+            br.book_id, br.item_id,
+            b.title as book_title, b.cover_url AS book_cover_url,
+            bi.barcode AS item_barcode
+        FROM borrow_record br
+                 LEFT JOIN book b ON br.book_id = b.id
+                 LEFT JOIN book_items bi ON br.item_id = bi.id
+    </select>
+
+    <select id="findByItemId" resultMap="BorrowRecordResultMap">
+        SELECT
+            br.id, br.reader_id, br.borrow_date, br.due_date, br.return_date, br.overdue_fine, br.status,
+            br.book_id, br.item_id,
+            b.title as book_title, b.cover_url AS book_cover_url,
+            bi.barcode AS item_barcode
+        FROM borrow_record br
+                 LEFT JOIN book b ON br.book_id = b.id
+                 LEFT JOIN book_items bi ON br.item_id = bi.id
+        WHERE br.item_id = #{itemId}
+    </select>
+
 </mapper>

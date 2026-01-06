@@ -9,6 +9,8 @@ import java.util.List;
 public interface BorrowRecordMapper {
     List<BorrowRecord> findAll();
     BorrowRecord findById(Long id);
+    List<BorrowRecord> findByReaderId(Long readerId);
+    BorrowRecord findByItemId(Long itemId);
     void addBorrowRecord(BorrowRecord record);
     void updateBorrowRecord(BorrowRecord record);
 }

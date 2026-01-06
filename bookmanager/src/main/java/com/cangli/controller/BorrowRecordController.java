@@ -3,6 +3,7 @@ package com.cangli.controller;
 import com.cangli.pojo.BorrowRecord;
 import com.cangli.pojo.Result;
 import com.cangli.service.BorrowRecordService;
+import lombok.extern.log4j.Log4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,10 +19,6 @@ public class BorrowRecordController {
     @GetMapping()
     Result getBorrowList() {
         List<BorrowRecord> borrowRecords = borrowRecordService.findAll();
-        System.out.println("BorrowRecordController.getBorrowList() returning " + borrowRecords.size() + " records");
-        for (BorrowRecord record : borrowRecords) {
-            System.out.println("BorrowRecord: id=" + record.getId() + ", status=" + record.getStatus() + ", readerId=" + record.getReaderId());
-        }
         return Result.ok(borrowRecords);
     }
 
@@ -29,7 +26,12 @@ public class BorrowRecordController {
     Result borrowBook(@RequestBody Map<String, Object> request) {
         Long bookId = Long.valueOf(request.get("bookId").toString());
         Long readerId = Long.valueOf(request.get("readerId").toString());
-        BorrowRecord record = borrowRecordService.borrowBook(bookId, readerId);
+        Object itemIdObj = request.get("itemId");
+        if (itemIdObj == null) {
+            return Result.error("itemId不能为空");
+        }
+        Integer itemId = Integer.valueOf(itemIdObj.toString());
+        BorrowRecord record = borrowRecordService.borrowBook(bookId, readerId, itemId);
         return Result.ok(record);
     }
 

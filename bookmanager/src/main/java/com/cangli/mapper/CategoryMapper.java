@@ -9,4 +9,8 @@ import java.util.List;
 public interface CategoryMapper {
     @Select("select * from categories")
     List<Category> findAll();
+
+
+    @Select("select * from categories where id=#{id}")
+    Category findById(Integer id);
 }
