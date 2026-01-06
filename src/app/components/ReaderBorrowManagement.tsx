@@ -11,7 +11,7 @@ import type { Book } from './BookManagement';
 import type { Reader } from './ReaderManagement';
 
 interface ReaderBorrowManagementProps {
-  username: string;
+  currentReader: any;
   books: Book[];
   readers: Reader[];
   borrowRecords: BorrowRecord[];
@@ -20,15 +20,14 @@ interface ReaderBorrowManagementProps {
 }
 
 export function ReaderBorrowManagement({
-  username,
+  currentReader,
   books,
   readers,
   borrowRecords,
   onReturn,
   onRenew
 }: ReaderBorrowManagementProps) {
-  // 找到当前读者的信息
-  const currentReader = readers.find(r => r.name === username);
+  // 使用传递的currentReader
   const readerId = currentReader?.id;
 
   // 获取当前读者的借阅记录

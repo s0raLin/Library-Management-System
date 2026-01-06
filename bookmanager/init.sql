@@ -45,6 +45,12 @@ create table book_items (
     constraint `1` foreign key (book_id) references book (id) on delete cascade
 ) comment '图书实体表';
 
+create index barcode_2 on book_items (barcode);
+
+create index book_id on book_items (book_id);
+
+create index status on book_items (status);
+
 create table borrow_record (
     id int auto_increment comment '借阅记录ID' primary key,
     book_id int not null comment '图书ID',
@@ -84,5 +90,7 @@ create table reader (
     reader_type enum ('学生', '教师') not null comment '读者类型',
     contact varchar(100) null comment '联系方式（电话或邮箱）',
     borrow_limit int default 3 null comment '借书限额（学生默认3本，教师可设更高）',
-    borrowed_count int default 0 null comment '当前已借数量'
+    borrowed_count int default 0 null comment '当前已借数量',
+    username varchar(20) not null comment '用户名',
+    password varchar(20) not null comment '密码'
 ) comment '读者表' collate = utf8mb4_uca1400_ai_ci;

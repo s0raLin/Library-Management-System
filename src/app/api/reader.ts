@@ -21,3 +21,8 @@ export function updateReader(id: number, readerData: Partial<Reader>): Promise<a
 export function deleteReader(id: number): Promise<any> {
   return del(`/reader/${id}`);
 }
+
+
+export function getByUserNameAndPassword(readerData: {username: string, password: string}) {
+  return post("/login", readerData);
+}

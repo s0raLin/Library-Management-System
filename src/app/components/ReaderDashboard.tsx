@@ -6,15 +6,14 @@ import type { Book } from './BookManagement';
 import type { Reader } from './ReaderManagement';
 
 interface ReaderDashboardProps {
-  username: string;
+  currentReader: any;
   borrowRecords: BorrowRecord[];
   books: Book[];
   readers: Reader[];
 }
 
-export function ReaderDashboard({ username, borrowRecords, books, readers }: ReaderDashboardProps) {
-  // 找到当前读者的信息
-  const currentReader = readers.find(r => r.name === username);
+export function ReaderDashboard({ currentReader, borrowRecords, books, readers }: ReaderDashboardProps) {
+  // 使用传递的currentReader
   const readerId = currentReader?.id;
 
   // 获取当前读者的借阅记录

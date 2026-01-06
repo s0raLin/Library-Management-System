@@ -4,7 +4,8 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.cangli.mapper.ReaderMapper">
-    <select id="findAll" resultType="com.cangli.pojo.Reader">
+
+    <select id="findAll"  resultType="com.cangli.pojo.Reader">
         SELECT * FROM reader ORDER BY id DESC
     </select>
 

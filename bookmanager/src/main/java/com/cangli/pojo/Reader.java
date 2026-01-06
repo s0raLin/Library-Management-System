@@ -13,4 +13,7 @@ public class Reader {
     private String contact;
     private Integer borrowLimit = 3;
     private Integer borrowedCount = 0;
+
+    private String username;
+    private String password;
 }
