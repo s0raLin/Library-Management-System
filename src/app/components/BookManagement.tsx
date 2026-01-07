@@ -94,40 +94,7 @@ export function BookManagement({
   onDiscard,
   onUpdateBookItemStatus,
   onRefresh,
-}: BookManagementProps) {
-  console.log("=== BookManagement Debug Info ===");
-  console.log("Total books:", books.length);
-  console.log("Categories:", categories);
-  
-  books.forEach((book, index) => {
-    console.log(`\n--- Book ${index + 1}: ${book.title} ---`);
-    console.log("Book ID:", book.id);
-    console.log("Code:", book.code);
-    console.log("Category ID:", book.categoryId);
-    console.log("Category Name:", book.category);
-    console.log("BookItems count:", book.bookItems?.length || 0);
-    
-    if (book.bookItems && book.bookItems.length > 0) {
-      console.log("BookItems details:");
-      book.bookItems.forEach((item, itemIndex) => {
-        console.log(`  Item ${itemIndex + 1}:`, {
-          id: item.id,
-          bookId: item.bookId,
-          barcode: item.barcode,
-          location: item.location,
-          status: item.status,
-          priceAtEntry: item.priceAtEntry,
-          entryDate: item.entryDate,
-          notes: item.notes
-        });
-      });
-    } else {
-      console.log("No BookItems found for this book");
-    }
-  });
-  
-  console.log("=== End Debug Info ===\n");
-  
+}: BookManagementProps) {  
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -231,10 +198,9 @@ export function BookManagement({
         notes: "",
       });
       // 刷新图书列表以获取更新的bookItems
-      window.location.reload();
+      await onRefresh();
     } catch (error) {
-      console.error('Error adding book item:', error);
-      toast.error("添加图书单例失败");
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -254,25 +220,43 @@ export function BookManagement({
       setIsEditBookItemDialogOpen(false);
       setSelectedBookItem(null);
       // 刷新图书列表以获取更新的bookItems
-      window.location.reload();
+      await onRefresh();
     } catch (error) {
-      console.error('Error updating book item:', error);
-      toast.error("更新图书单例失败");
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)));
     }
   };
 
   // 处理删除图书单例
   const handleDeleteBookItem = async (itemId: number) => {
-    if (!confirm('确定要删除这个图书单例吗？')) return;
+    // 查找对应的图书实例
+    let bookItemToDelete: BookItem | undefined;
+    for (const book of books) {
+      if (book.bookItems) {
+        bookItemToDelete = book.bookItems.find(item => item.id === itemId);
+        if (bookItemToDelete) break;
+      }
+    }
+
+    if (!bookItemToDelete) {
+      toast.error("未找到要删除的书目");
+      return;
+    }
+
+    // 检查图书状态
+    if (bookItemToDelete.status === 'borrowed') {
+      toast.error("已借出的图书无法删除，请先归还图书");
+      return;
+    }
+
+    if (!confirm('确定要删除这个书目吗？')) return;
 
     try {
       await deleteBookItem(itemId);
-      toast.success("图书单例删除成功！");
+      toast.success("书目删除成功！");
       // 刷新图书列表以获取更新的bookItems
-      window.location.reload();
+      await onRefresh();
     } catch (error) {
-      console.error('Error deleting book item:', error);
-      toast.error("删除图书单例失败");
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -331,7 +315,7 @@ export function BookManagement({
         ...formData,
         categoryId: selectedCategory.id
       };
-      console.log('Submitting book data:', bookDataWithCategoryId);
+      console.log('提交图书数据:', bookDataWithCategoryId);
       await onAddBook(bookDataWithCategoryId);
       toast.success("图书添加成功！");
       setIsAddDialogOpen(false);
@@ -352,8 +336,8 @@ export function BookManagement({
         bookItems: [] as BookItem[],
       });
     } catch (error) {
-      console.error('Error adding book:', error);
-      toast.error("添加图书失败");
+      console.error('添加图书时出错', error);
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -364,31 +348,23 @@ export function BookManagement({
     
     if (!selectedBook || purchaseData.quantity <= 0) {
       console.log('Purchase validation failed');
-      toast.error("请填写正确的采购数量");
+      toast.error("请填写正确的入库数量");
       return;
     }
     
     try {
-      console.log('Starting purchase operation...');
-      console.log('Book ID:', selectedBook.id);
-      console.log('Quantity:', purchaseData.quantity);
-      console.log('Supplier:', purchaseData.supplier);
-      console.log('Current BookItems before purchase:', selectedBook.bookItems);
-      
       onPurchase(selectedBook.id, purchaseData.quantity, purchaseData.supplier);
       
-      console.log('Purchase operation completed successfully');
       toast.success(
-        `成功采购 ${purchaseData.quantity} 本《${selectedBook.title}》`
+        `成功入库 ${purchaseData.quantity} 本《${selectedBook.title}》`
       );
       setIsPurchaseDialogOpen(false);
       setPurchaseData({ quantity: 1, supplier: "" });
       setSelectedBook(null);
     } catch (error) {
       console.error('Purchase error in component:', error);
-      toast.error('采购失败: ' + (error instanceof Error ? error.message : String(error)));
+      toast.error('入库失败: ' + (error instanceof Error ? error.message : String(error)));
     }
-    console.log('=== End Purchase Debug ===\n');
   };
 
   return (
@@ -396,7 +372,7 @@ export function BookManagement({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl mb-2">图书管理</h2>
-          <p className="text-gray-500">管理图书信息、采购入库和出库</p>
+          <p className="text-gray-500">管理图书信息、入库入库和出库</p>
         </div>
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={onRefresh}>
@@ -615,8 +591,6 @@ export function BookManagement({
 
                   const categoryName = categories.find(cat => cat.id === book.categoryId)?.name || book.category || '未知分类';
 
-                  console.log(`Book: ${book.title}, CategoryId: ${book.categoryId}, CategoryName: ${categoryName}, Total: ${totalQuantity}, Available: ${availableQuantity}`);
-                  console.log(`BookItems for ${book.title}:`, book.bookItems);
 
                   return (
                     <Fragment key={book.id}>
@@ -669,7 +643,7 @@ export function BookManagement({
                                 setSelectedBook(book);
                                 setIsPurchaseDialogOpen(true);
                               }}
-                              title="采购入库"
+                              title="入库入库"
                             >
                               <PackagePlus className="w-4 h-4" />
                             </Button>
@@ -822,7 +796,7 @@ export function BookManagement({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>图书采购入库</DialogTitle>
+            <DialogTitle>图书入库入库</DialogTitle>
             <DialogDescription>
               {selectedBook && 
                 `为《${selectedBook.title}》添加库存 | 当前总册数: ${selectedBook.bookItems?.length || 0} | 可借册数: ${selectedBook.bookItems?.filter(item => item.status === 'available')?.length || 0}`
@@ -831,7 +805,7 @@ export function BookManagement({
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="purchaseQuantity">采购数量</Label>
+              <Label htmlFor="purchaseQuantity">入库数量</Label>
               <Input
                 id="purchaseQuantity"
                 type="number"
@@ -867,7 +841,7 @@ export function BookManagement({
                 onClick={handlePurchase}
                 disabled={!selectedBook || purchaseData.quantity <= 0}
               >
-                确认采购
+                确认入库
               </Button>
             </div>
           </div>

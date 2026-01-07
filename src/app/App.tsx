@@ -125,7 +125,7 @@ export default function App() {
   const refreshBorrowRecords = async () => {
     try {
       const updatedRecords = await getBorrowList();
-      const filteredRecords = updatedRecords.filter(r => books.some(b => b.id === r.bookId));
+      const filteredRecords = updatedRecords.filter((r: { bookId: number; }) => books.some(b => b.id === r.bookId));
       setBorrowRecords(filteredRecords);
       toast.success('借阅记录已刷新');
     } catch (error) {
@@ -260,11 +260,11 @@ export default function App() {
       }
       
       setBooks(updatedBooks);
-      toast.success('采购成功');
+      toast.success('入库成功');
       console.log('Purchase operation completed successfully');
     } catch (error) {
       console.error('Purchase operation failed:', error);
-      toast.error('采购失败: ' + (error instanceof Error ? error.message : String(error)));
+      toast.error('入库失败: ' + (error instanceof Error ? error.message : String(error)));
     }
     console.log('=== End App.tsx Purchase Handler ===\n');
   };

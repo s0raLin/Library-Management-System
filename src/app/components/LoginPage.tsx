@@ -67,7 +67,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       toast.success('登录成功！');
       onLogin(username, role, readerInfo);
     } catch (error: any) {
-      toast.error(error.msg || '登录失败');
+      toast.error(typeof error === 'string' ? error : (error.msg || '登录失败'));
     } finally {
       setIsLoading(false);
     }
@@ -78,6 +78,36 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
     if (!username || !password || !name || !gender) {
       toast.error('请填写所有必填字段');
+      return;
+    }
+
+    // 长度校验
+    if (name.trim().length > 10) {
+      toast.error('姓名长度不能超过12个字符');
+      return;
+    }
+    if (username.trim().length < 3) {
+      toast.error('用户名长度不能少于3个字符');
+      return;
+    }
+    if (username.trim().length > 20) {
+      toast.error('用户名长度不能超过20个字符');
+      return;
+    }
+    if (password.length < 6) {
+      toast.error('密码长度不能少于6个字符');
+      return;
+    }
+    if (password.length > 16) {
+      toast.error('密码长度不能超过16个字符');
+      return;
+    }
+    if (contact && contact.trim().length > 20) {
+      toast.error('联系方式长度不能超过20个字符');
+      return;
+    }
+    if (classDept && classDept.trim().length > 20) {
+      toast.error('班级/部门长度不能超过20个字符');
       return;
     }
 
@@ -104,7 +134,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       setClassDept('');
       setContact('');
     } catch (error: any) {
-      toast.error(error.msg || '注册失败');
+      toast.error(typeof error === 'string' ? error : (error.msg || '注册失败'));
     } finally {
       setIsLoading(false);
     }
@@ -188,6 +218,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     placeholder="请输入用户名"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
+                    maxLength={20}
                   />
                 </div>
                 <div className="space-y-2">
@@ -198,6 +229,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     placeholder="请输入密码"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    maxLength={50}
                   />
                 </div>
                 <div className="space-y-2">
@@ -207,6 +239,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     placeholder="请输入姓名"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    maxLength={50}
                   />
                 </div>
                 <div className="space-y-2">
@@ -250,6 +283,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     placeholder="请输入联系方式"
                     value={contact}
                     onChange={(e) => setContact(e.target.value)}
+                    maxLength={100}
                   />
                 </div>
                 <Button className="w-full" disabled={isLoading} onClick={handleRegister}>

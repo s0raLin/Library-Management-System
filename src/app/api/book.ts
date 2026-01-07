@@ -30,7 +30,7 @@ export function deleteBook(id: number): Promise<any> {
   return del(`/book/${id}`);
 }
 
-// 采购图书（增加库存）
+// 入库图书（增加库存）
 export function purchaseBook(bookId: number, quantity: number, supplier: string): Promise<any> {
   console.log('purchaseBook API called with:', { bookId, quantity, supplier });
   const payload = { 

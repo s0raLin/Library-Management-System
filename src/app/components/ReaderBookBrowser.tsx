@@ -118,7 +118,7 @@ export function ReaderBookBrowser({
       toast.success(`成功借阅《${book.title}》`);
       setIsBorrowDialogOpen(false);
     } catch (error) {
-      toast.error("借阅失败");
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -129,7 +129,7 @@ export function ReaderBookBrowser({
       await onReturn(record.id);
       toast.success(`成功归还《${book.title}》`);
     } catch (error) {
-      toast.error("还书失败");
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)));
     }
   };
 

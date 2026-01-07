@@ -8,10 +8,23 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { BookPlus, BookMinus, Search, AlertCircle, RefreshCw } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
+import { BookPlus, BookMinus, Search, AlertCircle, RefreshCw, Check, ChevronsUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Book } from './BookManagement';
 import type { Reader } from './ReaderManagement';
+
+// 格式化日期为易读格式
+const formatDate = (dateString: string | null) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+};
 
 export interface BorrowRecord {
   id: number;
@@ -36,11 +49,13 @@ interface BorrowManagementProps {
 }
 
 export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onReturn, onRenew, onRefresh }: BorrowManagementProps) {
-  const [isBorrowDialogOpen, setIsBorrowDialogOpen] = useState(false);
-  const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
-  const [selectedReaderId, setSelectedReaderId] = useState<number | null>(null);
-  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+   const [isBorrowDialogOpen, setIsBorrowDialogOpen] = useState(false);
+   const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
+   const [selectedReaderId, setSelectedReaderId] = useState<number | null>(null);
+   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+   const [searchTerm, setSearchTerm] = useState('');
+   const [bookSearchOpen, setBookSearchOpen] = useState(false);
+   const [bookSearchValue, setBookSearchValue] = useState('');
 
   useEffect(() => {
     setSelectedItemId(null);
@@ -81,6 +96,7 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
     setSelectedBookId(null);
     setSelectedReaderId(null);
     setSelectedItemId(null);
+    setBookSearchValue('');
   };
 
   const handleReturn = (record: BorrowRecord) => {
@@ -150,29 +166,78 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
               </div>
               <div className="space-y-2">
                 <Label>选择图书</Label>
-                <Select
-                  value={selectedBookId?.toString()}
-                  onValueChange={(value) => setSelectedBookId(parseInt(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="请选择图书" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {books
-                      .filter((book) => {
-                        const availableQuantity = book.bookItems?.filter(item => item.status === 'available')?.length || 0;
-                        return availableQuantity > 0;
-                      })
-                      .map((book) => {
-                        const availableQuantity = book.bookItems?.filter(item => item.status === 'available')?.length || 0;
-                        return (
-                          <SelectItem key={book.id} value={book.id.toString()}>
-                            {book.title} - {book.author} (可借: {availableQuantity})
-                          </SelectItem>
-                        );
-                      })}
-                  </SelectContent>
-                </Select>
+                <Popover open={bookSearchOpen} onOpenChange={setBookSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={bookSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedBookId
+                        ? (() => {
+                            const book = books.find((b) => b.id === selectedBookId);
+                            const availableQuantity = book?.bookItems?.filter(item => item.status === 'available')?.length || 0;
+                            return `${book?.title} - ${book?.author} (可借: ${availableQuantity})`;
+                          })()
+                        : "请选择图书..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput
+                        placeholder="搜索图书..."
+                        value={bookSearchValue}
+                        onValueChange={setBookSearchValue}
+                      />
+                      <CommandList>
+                        <CommandEmpty>未找到图书</CommandEmpty>
+                        <CommandGroup>
+                          {books
+                            .filter((book) => {
+                              const availableQuantity = book.bookItems?.filter(item => item.status === 'available')?.length || 0;
+                              return availableQuantity > 0;
+                            })
+                            .filter((book) => {
+                              const searchLower = bookSearchValue.toLowerCase();
+                              return (
+                                book.title.toLowerCase().includes(searchLower) ||
+                                book.author.toLowerCase().includes(searchLower) ||
+                                book.isbn?.toLowerCase().includes(searchLower)
+                              );
+                            })
+                            .map((book) => {
+                              const availableQuantity = book.bookItems?.filter(item => item.status === 'available')?.length || 0;
+                              return (
+                                <CommandItem
+                                  key={book.id}
+                                  value={`${book.title} ${book.author} ${book.isbn || ''}`}
+                                  onSelect={() => {
+                                    setSelectedBookId(book.id);
+                                    setBookSearchOpen(false);
+                                    setBookSearchValue('');
+                                  }}
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      selectedBookId === book.id ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  />
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{book.title}</span>
+                                    <span className="text-sm text-muted-foreground">
+                                      {book.author} • 可借: {availableQuantity}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              );
+                            })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               {selectedBookId && (
                 <div className="space-y-2">
@@ -265,9 +330,9 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
                         <TableRow key={record.id}>
                           <TableCell>{record.bookTitle || '未知'}</TableCell>
                           <TableCell>{reader?.name || '未知'}</TableCell>
-                          <TableCell>{record.borrowDate}</TableCell>
+                          <TableCell>{formatDate(record.borrowDate)}</TableCell>
                           <TableCell className={overdue ? 'text-red-600' : ''}>
-                            {record.dueDate}
+                            {formatDate(record.dueDate)}
                           </TableCell>
                           <TableCell>
                             <Badge variant={overdue ? 'destructive' : 'default'}>
@@ -340,9 +405,9 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
                         <TableRow key={record.id}>
                           <TableCell>{record.bookTitle || '未知'}</TableCell>
                           <TableCell>{reader?.name || '未知'}</TableCell>
-                          <TableCell>{record.borrowDate}</TableCell>
-                          <TableCell>{record.dueDate}</TableCell>
-                          <TableCell>{record.returnDate}</TableCell>
+                          <TableCell>{formatDate(record.borrowDate)}</TableCell>
+                          <TableCell>{formatDate(record.dueDate)}</TableCell>
+                          <TableCell>{formatDate(record.returnDate)}</TableCell>
                           <TableCell>
                             {record.overdueFine > 0 ? (
                               <span className="text-red-600">¥{record.overdueFine.toFixed(2)}</span>

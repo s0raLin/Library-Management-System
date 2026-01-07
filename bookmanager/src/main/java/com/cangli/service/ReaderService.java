@@ -54,14 +54,35 @@ public class ReaderService implements ReaderServiceTrait {
         if (reader.getName() == null || reader.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("读者姓名不能为空");
         }
+        if (reader.getName().trim().length() > 50) {
+            throw new IllegalArgumentException("读者姓名长度不能超过50个字符");
+        }
         if (reader.getGender() == null || reader.getGender().trim().isEmpty()) {
             throw new IllegalArgumentException("读者性别不能为空");
         }
         if (reader.getUsername() == null || reader.getUsername().trim().isEmpty()) {
             throw new IllegalArgumentException("用户名不能为空");
         }
+        if (reader.getUsername().trim().length() < 3) {
+            throw new IllegalArgumentException("用户名长度不能少于3个字符");
+        }
+        if (reader.getUsername().trim().length() > 20) {
+            throw new IllegalArgumentException("用户名长度不能超过20个字符");
+        }
         if (reader.getPassword() == null || reader.getPassword().trim().isEmpty()) {
             throw new IllegalArgumentException("密码不能为空");
+        }
+        if (reader.getPassword().length() < 6) {
+            throw new IllegalArgumentException("密码长度不能少于6个字符");
+        }
+        if (reader.getPassword().length() > 50) {
+            throw new IllegalArgumentException("密码长度不能超过50个字符");
+        }
+        if (reader.getContact() != null && reader.getContact().trim().length() > 100) {
+            throw new IllegalArgumentException("联系方式长度不能超过100个字符");
+        }
+        if (reader.getClassDept() != null && reader.getClassDept().trim().length() > 50) {
+            throw new IllegalArgumentException("班级/部门长度不能超过50个字符");
         }
     }
 }

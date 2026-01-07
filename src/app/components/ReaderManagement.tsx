@@ -91,6 +91,37 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
       toast.error('请填写密码');
       return;
     }
+
+    // 长度校验
+    if (formData.name.trim().length > 50) {
+      toast.error('姓名长度不能超过50个字符');
+      return;
+    }
+    if (formData.username.trim().length < 3) {
+      toast.error('用户名长度不能少于3个字符');
+      return;
+    }
+    if (formData.username.trim().length > 20) {
+      toast.error('用户名长度不能超过20个字符');
+      return;
+    }
+    if (formData.password.length < 6) {
+      toast.error('密码长度不能少于6个字符');
+      return;
+    }
+    if (formData.password.length > 50) {
+      toast.error('密码长度不能超过50个字符');
+      return;
+    }
+    if (formData.contact && formData.contact.trim().length > 100) {
+      toast.error('联系方式长度不能超过100个字符');
+      return;
+    }
+    if (formData.classDept && formData.classDept.trim().length > 50) {
+      toast.error('班级/部门长度不能超过50个字符');
+      return;
+    }
+
     onAddReader(formData);
     toast.success('读者添加成功！');
     setIsAddDialogOpen(false);
@@ -100,6 +131,37 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedReader) return;
+
+    // 长度校验
+    if (formData.name.trim().length > 50) {
+      toast.error('姓名长度不能超过50个字符');
+      return;
+    }
+    if (formData.username.trim().length < 3) {
+      toast.error('用户名长度不能少于3个字符');
+      return;
+    }
+    if (formData.username.trim().length > 20) {
+      toast.error('用户名长度不能超过20个字符');
+      return;
+    }
+    if (formData.password.length < 6) {
+      toast.error('密码长度不能少于6个字符');
+      return;
+    }
+    if (formData.password.length > 50) {
+      toast.error('密码长度不能超过50个字符');
+      return;
+    }
+    if (formData.contact && formData.contact.trim().length > 100) {
+      toast.error('联系方式长度不能超过100个字符');
+      return;
+    }
+    if (formData.classDept && formData.classDept.trim().length > 50) {
+      toast.error('班级/部门长度不能超过50个字符');
+      return;
+    }
+
     onUpdateReader(selectedReader.id, formData);
     toast.success('读者信息已更新！');
     setIsEditDialogOpen(false);
@@ -161,11 +223,12 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">姓名 *</Label>
+                <Label htmlFor="name">姓名 * (最多50个字符)</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  maxLength={50}
                   required
                 />
               </div>
@@ -221,30 +284,33 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contact">联系方式</Label>
+                <Label htmlFor="contact">联系方式 (最多100个字符)</Label>
                 <Input
                   id="contact"
                   value={formData.contact}
                   onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
                   placeholder="电话或邮箱"
+                  maxLength={100}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="username">用户名 *</Label>
+                <Label htmlFor="username">用户名 * (3-20个字符)</Label>
                 <Input
                   id="username"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  maxLength={20}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">密码 *</Label>
+                <Label htmlFor="password">密码 * (至少6个字符)</Label>
                 <Input
                   id="password"
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  maxLength={50}
                   required
                 />
               </div>
@@ -371,11 +437,12 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
           </DialogHeader>
           <form onSubmit={handleUpdate} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">姓名 *</Label>
+              <Label htmlFor="edit-name">姓名 * (最多50个字符)</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                maxLength={50}
                 required
               />
             </div>
@@ -425,29 +492,32 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-contact">联系方式</Label>
+              <Label htmlFor="edit-contact">联系方式 (最多100个字符)</Label>
               <Input
                 id="edit-contact"
                 value={formData.contact}
                 onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                maxLength={100}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-username">用户名 *</Label>
+              <Label htmlFor="edit-username">用户名 * (3-20个字符)</Label>
               <Input
                 id="edit-username"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                maxLength={20}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-password">密码 *</Label>
+              <Label htmlFor="edit-password">密码 * (至少6个字符)</Label>
               <Input
                 id="edit-password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                maxLength={50}
                 required
               />
             </div>

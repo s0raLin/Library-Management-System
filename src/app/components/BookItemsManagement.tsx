@@ -78,7 +78,7 @@ export function BookItemsManagement() {
       const data = await getBookItemList();
       setBookItems(data);
     } catch (error) {
-      toast.error('加载图书单例失败');
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)));
       console.error(error);
     } finally {
       setLoading(false);
@@ -128,8 +128,7 @@ export function BookItemsManagement() {
       });
       loadBookItems();
     } catch (error) {
-      console.error('Error adding book item:', error);
-      toast.error("添加图书单例失败");
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -155,21 +154,20 @@ export function BookItemsManagement() {
       loadBookItems();
     } catch (error) {
       console.error('Error updating book item:', error);
-      toast.error("更新图书单例失败");
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)));
     }
   };
 
   // 处理删除
   const handleDelete = async (id: number) => {
-    if (!confirm('确定要删除这个图书单例吗？')) return;
+    if (!confirm('确定要删除这本图书吗？')) return;
 
     try {
       await deleteBookItem(id);
-      toast.success("图书单例删除成功！");
+      toast.success("图书删除成功！");
       loadBookItems();
     } catch (error) {
-      console.error('Error deleting book item:', error);
-      toast.error("删除图书单例失败");
+      toast.error(typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)));
     }
   };
 

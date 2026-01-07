@@ -89,7 +89,7 @@ public class BookService implements BookServiceTrait {
             throw new IllegalArgumentException("purchaseBook: 图书不存在");
         }
         if (quantity <= 0) {
-            throw new IllegalArgumentException("purchaseBook: 采购数量必须大于0");
+            throw new IllegalArgumentException("purchaseBook: 入库数量必须大于0");
         }
 
         // 生成指定数量的BookItems
@@ -102,7 +102,7 @@ public class BookService implements BookServiceTrait {
             bookItem.setStatus("available");
             bookItem.setPriceAtEntry(book.getPrice());
             bookItem.setEntryDate(new Date());
-            bookItem.setNotes("采购自: " + (supplier != null ? supplier : "未知供应商"));
+            bookItem.setNotes("入库自: " + (supplier != null ? supplier : "未知供应商"));
             newBookItems.add(bookItem);
         }
 
