@@ -73,7 +73,7 @@ export function discardBook(bookId: number, quantity: number): Promise<any> {
     });
 }
 
-// 更新单个图书实例状态
+// 更新单个图书单例状态
 export function updateBookItemStatus(itemId: number, status: string): Promise<any> {
   console.log('updateBookItemStatus API called with:', { itemId, status });
   const payload = {

@@ -72,4 +72,8 @@
     <update id="softDeleteBook" parameterType="long">
         UPDATE book SET is_deleted = 1 WHERE id = #{id}
     </update>
+
+    <select id="countByCategoryId" parameterType="int" resultType="int">
+        SELECT COUNT(*) FROM book WHERE category_id = #{categoryId} AND is_deleted = 0
+    </select>
 </mapper>

@@ -35,7 +35,7 @@ public class BookItemService implements BookItemServiceTrait {
     }
 
     @Override
-    public void batchUpdateStatus(String ids, String status) {
+    public void batchUpdateStatus(List<Integer> ids, String status) {
         bookItemMapper.batchUpdateStatus(ids, status);
     }
 
@@ -46,5 +46,29 @@ public class BookItemService implements BookItemServiceTrait {
         }
     }
 
+    @Override
+    public BookItem findById(Integer id) {
+        return bookItemMapper.findById(id);
+    }
+
+    @Override
+    public void softDeleteByBookId(Long bookId) {
+        bookItemMapper.softDeleteByBookId(bookId);
+    }
+
+    @Override
+    public List<BookItem> findAll() {
+        return bookItemMapper.findAll();
+    }
+
+    @Override
+    public void updateBookItem(BookItem bookItem) {
+        bookItemMapper.updateBookItem(bookItem);
+    }
+
+    @Override
+    public void deleteBookItem(Integer id) {
+        bookItemMapper.deleteBookItem(id);
+    }
 
 }

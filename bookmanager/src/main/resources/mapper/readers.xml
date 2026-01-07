@@ -21,7 +21,9 @@
             reader_type,
             contact,
             borrow_limit,
-            borrowed_count
+            borrowed_count,
+            username,
+            password
         ) VALUES (
                      #{name},
                      #{gender},
@@ -29,7 +31,9 @@
                      #{readerType},
                      #{contact},
                      #{borrowLimit},
-                     #{borrowedCount}
+                     #{borrowedCount},
+                     #{username},
+                     #{password}
                  )
     </insert>
 
@@ -41,7 +45,9 @@
             reader_type = #{readerType},
             contact = #{contact},
             borrow_limit = #{borrowLimit},
-            borrowed_count = #{borrowedCount}
+            borrowed_count = #{borrowedCount},
+            username = #{username},
+            password = #{password}
         WHERE id = #{id}
     </update>
 

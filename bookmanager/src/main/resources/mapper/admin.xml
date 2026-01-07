@@ -4,14 +4,14 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.cangli.mapper.AdminMapper">
-    <select id="findById" parameterType="Integer" resultType="com.cangli.pojo.Admin">
+    <select id="findById" parameterType="Integer" resultType="Admin">
         select * from admin where id=#{id}
     </select>
 
-    <select id="findAll" resultType="com.cangli.pojo.Admin">
+    <select id="findAll" resultType="Admin">
         select * from admin
     </select>
-    <insert id="add" parameterType="com.cangli.pojo.Admin">
+    <insert id="add" parameterType="Admin">
         insert into admin values (null, #{username}, #{password},#{role})
     </insert>
 

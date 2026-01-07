@@ -22,4 +22,9 @@ public class AdminService implements AdminServiceTrait {
     public List<Admin> findAll() {
         return adminMapper.findAll();
     }
+
+    @Override
+    public Admin findByUsernameAndPassword(String username, String password) {
+        return adminMapper.findByUsernameAndPassword(username, password);
+    }
 }

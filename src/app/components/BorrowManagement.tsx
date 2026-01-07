@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { BookPlus, BookMinus, Search, AlertCircle } from 'lucide-react';
+import { BookPlus, BookMinus, Search, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Book } from './BookManagement';
 import type { Reader } from './ReaderManagement';
@@ -32,9 +32,10 @@ interface BorrowManagementProps {
   onBorrow: (bookId: number, readerId: number, itemId: number) => void;
   onReturn: (recordId: number) => void;
   onRenew: (recordId: number) => void;
+  onRefresh: () => Promise<void>;
 }
 
-export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onReturn, onRenew }: BorrowManagementProps) {
+export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onReturn, onRenew, onRefresh }: BorrowManagementProps) {
   const [isBorrowDialogOpen, setIsBorrowDialogOpen] = useState(false);
   const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
   const [selectedReaderId, setSelectedReaderId] = useState<number | null>(null);
@@ -111,13 +112,18 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
           <h2 className="text-3xl mb-2">借阅管理</h2>
           <p className="text-gray-500">办理借书、还书和续借业务</p>
         </div>
-        <Dialog open={isBorrowDialogOpen} onOpenChange={setIsBorrowDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <BookPlus className="w-4 h-4 mr-2" />
-              办理借书
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={onRefresh}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            刷新
+          </Button>
+          <Dialog open={isBorrowDialogOpen} onOpenChange={setIsBorrowDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <BookPlus className="w-4 h-4 mr-2" />
+                办理借书
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>办理借书</DialogTitle>
@@ -204,8 +210,9 @@ export function BorrowManagement({ books, readers, borrowRecords, onBorrow, onRe
                 <Button onClick={handleBorrow}>确认借书</Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="active" className="space-y-4">

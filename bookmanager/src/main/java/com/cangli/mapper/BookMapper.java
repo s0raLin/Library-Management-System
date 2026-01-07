@@ -12,4 +12,5 @@ public interface BookMapper {
     void addBook(Book book);
     void updateBook(Book book);
     void softDeleteBook(Long id);
+    int countByCategoryId(Integer categoryId);
 }

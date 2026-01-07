@@ -7,8 +7,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
-import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+
+// 班级/部门选项
+const classDeptOptions = [
+  '一年级1班',
+  '一年级2班',
+  '二年级1班',
+  '二年级2班',
+  '三年级1班',
+  '三年级2班',
+  '四年级1班',
+  '四年级2班',
+  '五年级1班',
+  '五年级2班',
+  '六年级1班',
+  '六年级2班',
+  '教务处',
+  '图书馆',
+  '其他'
+];
 
 export interface Reader {
   id: number;
@@ -19,6 +38,8 @@ export interface Reader {
   contact: string;
   borrowLimit: number;
   borrowedCount: number;
+  username: string;
+  password: string;
 }
 
 interface ReaderManagementProps {
@@ -26,9 +47,10 @@ interface ReaderManagementProps {
   onAddReader: (reader: Omit<Reader, 'id' | 'borrowedCount'>) => void;
   onUpdateReader: (id: number, reader: Partial<Reader>) => void;
   onDeleteReader: (id: number) => void;
+  onRefresh: () => Promise<void>;
 }
 
-export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDeleteReader }: ReaderManagementProps) {
+export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDeleteReader, onRefresh }: ReaderManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -42,6 +64,8 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
     readerType: '学生' as '学生' | '教师',
     contact: '',
     borrowLimit: 3,
+    username: '',
+    password: '',
   });
 
   const filteredReaders = readers.filter((reader) => {
@@ -57,6 +81,14 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
     e.preventDefault();
     if (!formData.name) {
       toast.error('请填写姓名');
+      return;
+    }
+    if (!formData.username) {
+      toast.error('请填写用户名');
+      return;
+    }
+    if (!formData.password) {
+      toast.error('请填写密码');
       return;
     }
     onAddReader(formData);
@@ -82,6 +114,8 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
       readerType: '学生',
       contact: '',
       borrowLimit: 3,
+      username: '',
+      password: '',
     });
     setSelectedReader(null);
   };
@@ -95,6 +129,8 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
       readerType: reader.readerType,
       contact: reader.contact,
       borrowLimit: reader.borrowLimit,
+      username: reader.username,
+      password: reader.password,
     });
     setIsEditDialogOpen(true);
   };
@@ -106,14 +142,19 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
           <h2 className="text-3xl mb-2">读者管理</h2>
           <p className="text-gray-500">管理学生和教师读者信息</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              添加读者
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={onRefresh}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            刷新
+          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                添加读者
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
             <DialogHeader>
               <DialogTitle>添加新读者</DialogTitle>
               <DialogDescription>填写读者基本信息</DialogDescription>
@@ -166,12 +207,18 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
               </div>
               <div className="space-y-2">
                 <Label htmlFor="classDept">班级/部门</Label>
-                <Input
-                  id="classDept"
-                  value={formData.classDept}
-                  onChange={(e) => setFormData({ ...formData, classDept: e.target.value })}
-                  placeholder="例如：软件231、计算机系"
-                />
+                <Select value={formData.classDept} onValueChange={(value) => setFormData({ ...formData, classDept: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="请选择班级或部门" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classDeptOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contact">联系方式</Label>
@@ -180,6 +227,25 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
                   value={formData.contact}
                   onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
                   placeholder="电话或邮箱"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">用户名 *</Label>
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">密码 *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -200,8 +266,9 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
                 <Button type="submit">添加</Button>
               </div>
             </form>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -344,11 +411,18 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-classDept">班级/部门</Label>
-              <Input
-                id="edit-classDept"
-                value={formData.classDept}
-                onChange={(e) => setFormData({ ...formData, classDept: e.target.value })}
-              />
+              <Select value={formData.classDept} onValueChange={(value) => setFormData({ ...formData, classDept: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="请选择班级或部门" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classDeptOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-contact">联系方式</Label>
@@ -356,6 +430,25 @@ export function ReaderManagement({ readers, onAddReader, onUpdateReader, onDelet
                 id="edit-contact"
                 value={formData.contact}
                 onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-username">用户名 *</Label>
+              <Input
+                id="edit-username"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">密码 *</Label>
+              <Input
+                id="edit-password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
               />
             </div>
             <div className="space-y-2">

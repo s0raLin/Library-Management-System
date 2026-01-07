@@ -7,10 +7,15 @@ import java.util.List;
 
 @Mapper
 public interface CategoryMapper {
-    @Select("select * from categories")
     List<Category> findAll();
 
-
-    @Select("select * from categories where id=#{id}")
     Category findById(Integer id);
+
+    Category findByCode(String code);
+
+    void addCategory(Category category);
+
+    void updateCategory(Category category);
+
+    void deleteCategory(Integer id);
 }

@@ -26,9 +26,21 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
-import { Plus, Search, Trash2, PackagePlus, PackageMinus, ChevronDown, ChevronRight, Edit, AlertTriangle, CheckCircle, Clock, Wrench, BookOpen, Archive } from "lucide-react";
+import { Plus, Search, Trash2, PackagePlus, PackageMinus, ChevronDown, ChevronRight, Edit, AlertTriangle, CheckCircle, BookOpen, MoreVertical, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import {
+  addBookItem,
+  updateBookItem,
+  deleteBookItem,
+  type BookItem
+} from "../api/bookitem";
 
 export interface Book {
   id: number;
@@ -49,16 +61,6 @@ export interface Book {
   bookItems: BookItem[];
 }
 
-interface BookItem {
-  id: number;
-  bookId: number;
-  barcode: string;
-  location: string;
-  status: string;
-  priceAtEntry: number;
-  entryDate: string;
-  notes: string;
-}
 
 type Category = {
   id: number;
@@ -79,6 +81,7 @@ interface BookManagementProps {
   onPurchase: (bookId: number, quantity: number, supplier: string) => void;
   onDiscard: (bookId: number, quantity: number) => void;
   onUpdateBookItemStatus: (itemId: number, status: string) => void;
+  onRefresh: () => Promise<void>;
 }
 
 export function BookManagement({
@@ -90,6 +93,7 @@ export function BookManagement({
   onPurchase,
   onDiscard,
   onUpdateBookItemStatus,
+  onRefresh,
 }: BookManagementProps) {
   console.log("=== BookManagement Debug Info ===");
   console.log("Total books:", books.length);
@@ -128,7 +132,10 @@ export function BookManagement({
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
+  const [isAddBookItemDialogOpen, setIsAddBookItemDialogOpen] = useState(false);
+  const [isEditBookItemDialogOpen, setIsEditBookItemDialogOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [selectedBookItem, setSelectedBookItem] = useState<BookItem | null>(null);
   const [expandedBooks, setExpandedBooks] = useState<Set<number>>(new Set());
 
   const [formData, setFormData] = useState({
@@ -153,6 +160,16 @@ export function BookManagement({
     supplier: "",
   });
 
+  const [bookItemFormData, setBookItemFormData] = useState({
+    bookId: 0,
+    barcode: "",
+    location: "",
+    status: "available",
+    priceAtEntry: 0,
+    entryDate: new Date().toISOString().split("T")[0],
+    notes: "",
+  });
+
   // 展开/折叠图书详情
   const toggleBookExpansion = (bookId: number) => {
     const newExpanded = new Set(expandedBooks);
@@ -171,16 +188,8 @@ export function BookManagement({
         return { icon: CheckCircle, color: 'text-green-600', label: '可借阅' };
       case 'borrowed':
         return { icon: BookOpen, color: 'text-blue-600', label: '已借出' };
-      case 'damaged':
-        return { icon: AlertTriangle, color: 'text-red-600', label: '损坏' };
-      case 'lost':
-        return { icon: AlertTriangle, color: 'text-red-600', label: '丢失' };
-      case 'repairing':
-        return { icon: Wrench, color: 'text-yellow-600', label: '维修中' };
-      case 'reserved':
-        return { icon: Clock, color: 'text-orange-600', label: '已预约' };
-      case 'internal':
-        return { icon: Archive, color: 'text-gray-600', label: '内部使用' };
+      case 'unavailable':
+        return { icon: AlertTriangle, color: 'text-red-600', label: '不可用' };
       default:
         return { icon: AlertTriangle, color: 'text-gray-600', label: '未知状态' };
     }
@@ -196,6 +205,92 @@ export function BookManagement({
     }
   };
 
+  // 处理添加图书单例
+  const handleAddBookItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bookItemFormData.barcode.trim()) {
+      toast.error("请填写条形码");
+      return;
+    }
+    if (bookItemFormData.bookId <= 0) {
+      toast.error("请选择图书");
+      return;
+    }
+
+    try {
+      await addBookItem(bookItemFormData);
+      toast.success("图书单例添加成功！");
+      setIsAddBookItemDialogOpen(false);
+      setBookItemFormData({
+        bookId: 0,
+        barcode: "",
+        location: "",
+        status: "available",
+        priceAtEntry: 0,
+        entryDate: new Date().toISOString().split("T")[0],
+        notes: "",
+      });
+      // 刷新图书列表以获取更新的bookItems
+      window.location.reload();
+    } catch (error) {
+      console.error('Error adding book item:', error);
+      toast.error("添加图书单例失败");
+    }
+  };
+
+  // 处理编辑图书单例
+  const handleEditBookItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBookItem) return;
+
+    if (!bookItemFormData.barcode.trim()) {
+      toast.error("请填写条形码");
+      return;
+    }
+
+    try {
+      await updateBookItem(selectedBookItem.id, bookItemFormData);
+      toast.success("图书单例更新成功！");
+      setIsEditBookItemDialogOpen(false);
+      setSelectedBookItem(null);
+      // 刷新图书列表以获取更新的bookItems
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating book item:', error);
+      toast.error("更新图书单例失败");
+    }
+  };
+
+  // 处理删除图书单例
+  const handleDeleteBookItem = async (itemId: number) => {
+    if (!confirm('确定要删除这个图书单例吗？')) return;
+
+    try {
+      await deleteBookItem(itemId);
+      toast.success("图书单例删除成功！");
+      // 刷新图书列表以获取更新的bookItems
+      window.location.reload();
+    } catch (error) {
+      console.error('Error deleting book item:', error);
+      toast.error("删除图书单例失败");
+    }
+  };
+
+  // 打开编辑图书单例对话框
+  const openEditBookItemDialog = (item: BookItem) => {
+    setSelectedBookItem(item);
+    setBookItemFormData({
+      bookId: item.bookId,
+      barcode: item.barcode,
+      location: item.location,
+      status: item.status,
+      priceAtEntry: item.priceAtEntry,
+      entryDate: item.entryDate,
+      notes: item.notes,
+    });
+    setIsEditBookItemDialogOpen(true);
+  };
+
   const filteredBooks = books.filter((book) => {
     const matchesSearch =
       book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -203,6 +298,7 @@ export function BookManagement({
       book.isbn.includes(searchTerm);
     
     const categoryName = categories.find(cat => cat.id === book.categoryId)?.name || book.category || '';
+    console.log("categoryName", categoryName);
     const matchesCategory =
       categoryFilter === "all" || categoryName === categoryFilter;
     
@@ -303,6 +399,10 @@ export function BookManagement({
           <p className="text-gray-500">管理图书信息、采购入库和出库</p>
         </div>
         <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={onRefresh}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            刷新
+          </Button>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -416,7 +516,7 @@ export function BookManagement({
                       }
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 col-span-2">
                     <Label htmlFor="description">描述</Label>
                     <Input
                       id="description"
@@ -491,10 +591,10 @@ export function BookManagement({
                 <TableHead>书名</TableHead>
                 <TableHead>作者</TableHead>
                 <TableHead>分类</TableHead>
-                <TableHead>总册数</TableHead>
-                <TableHead>可借册数</TableHead>
-                <TableHead>借阅次数</TableHead>
-                <TableHead>操作</TableHead>
+                <TableHead className="text-center">总册数</TableHead>
+                <TableHead className="text-center">可借册数</TableHead>
+                <TableHead className="text-center">借阅次数</TableHead>
+                <TableHead className="text-center">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -510,7 +610,7 @@ export function BookManagement({
               ) : (
                 filteredBooks.map((book) => {
                   const totalQuantity = book.bookItems?.length || 0;
-                  const availableQuantity = book.bookItems?.filter(item => item.status === 'available' || item.status === 'reserved')?.length || 0;
+                  const availableQuantity = book.bookItems?.filter(item => item.status === 'available')?.length || 0;
                   const isExpanded = expandedBooks.has(book.id);
 
                   const categoryName = categories.find(cat => cat.id === book.categoryId)?.name || book.category || '未知分类';
@@ -548,8 +648,8 @@ export function BookManagement({
                         <TableCell>
                           <Badge variant="secondary">{categoryName}</Badge>
                         </TableCell>
-                        <TableCell>{totalQuantity}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">{totalQuantity}</TableCell>
+                        <TableCell className="text-center">
                           <span
                             className={
                               availableQuantity === 0 ? "text-red-600" : ""
@@ -558,9 +658,9 @@ export function BookManagement({
                             {availableQuantity}
                           </span>
                         </TableCell>
-                        <TableCell>{book.borrowTimes}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
+                        <TableCell className="text-center">{book.borrowTimes}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex justify-center gap-2">
                             <Button
                               size="sm"
                               variant="outline"
@@ -593,33 +693,53 @@ export function BookManagement({
                             >
                               <PackageMinus className="w-4 h-4" />
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={async () => {
-                                if (confirm(`确定要删除《${book.title}》吗？`)) {
-                                  try {
-                                    await onDeleteBook(book.id);
-                                    toast.success("图书已删除");
-                                  } catch (error) {
-                                    toast.error("删除失败: " + (error instanceof Error ? error.message : String(error)));
-                                  }
-                                }
-                              }}
-                              title="删除图书"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline" title="更多操作">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setBookItemFormData({
+                                      ...bookItemFormData,
+                                      bookId: book.id,
+                                    });
+                                    setIsAddBookItemDialogOpen(true);
+                                  }}
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  添加图书单例
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    if (confirm(`确定要删除《${book.title}》吗？`)) {
+                                      try {
+                                        await onDeleteBook(book.id);
+                                        toast.success("图书已删除");
+                                      } catch (error) {
+                                        toast.error("删除失败: " + (error instanceof Error ? error.message : String(error)));
+                                      }
+                                    }
+                                  }}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  删除图书
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>
 
-                      {/* 展开的图书实例详情 */}
+                      {/* 展开的图书单例详情 */}
                       {isExpanded && book.bookItems && book.bookItems.length > 0 && (
                         <TableRow>
                           <TableCell colSpan={9} className="bg-gray-50 p-0">
                             <div className="p-4">
-                              <h4 className="font-medium mb-3 text-sm">图书实例详情</h4>
+                              <h4 className="font-medium mb-3 text-sm">图书单例详情</h4>
                               <div className="grid gap-3">
                                 {book.bookItems.map((item) => {
                                   const statusInfo = getStatusInfo(item.status);
@@ -643,6 +763,25 @@ export function BookManagement({
                                         </div>
                                       </div>
                                       <div className="flex items-center gap-2">
+                                        
+                                        <div className="flex gap-1">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => openEditBookItemDialog(item)}
+                                            title="编辑单例"
+                                          >
+                                            <Edit className="w-4 h-4" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleDeleteBookItem(item.id)}
+                                            title="删除单例"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </Button>
+                                        </div>
                                         <Badge variant="outline" className={statusInfo.color}>
                                           {statusInfo.label}
                                         </Badge>
@@ -656,11 +795,7 @@ export function BookManagement({
                                           <SelectContent>
                                             <SelectItem value="available">可借阅</SelectItem>
                                             <SelectItem value="borrowed">已借出</SelectItem>
-                                            <SelectItem value="damaged">损坏</SelectItem>
-                                            <SelectItem value="lost">丢失</SelectItem>
-                                            <SelectItem value="repairing">维修中</SelectItem>
-                                            <SelectItem value="reserved">已预约</SelectItem>
-                                            <SelectItem value="internal">内部使用</SelectItem>
+                                            <SelectItem value="unavailable">不可用</SelectItem>
                                           </SelectContent>
                                         </Select>
                                       </div>
@@ -736,6 +871,230 @@ export function BookManagement({
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 添加图书单例对话框 */}
+      <Dialog open={isAddBookItemDialogOpen} onOpenChange={setIsAddBookItemDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>添加图书单例</DialogTitle>
+            <DialogDescription>为选定图书添加新的单例</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddBookItem} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bookId">图书ID</Label>
+                <Input
+                  id="bookId"
+                  type="number"
+                  value={bookItemFormData.bookId}
+                  onChange={(e) =>
+                    setBookItemFormData({ ...bookItemFormData, bookId: parseInt(e.target.value) || 0 })
+                  }
+                  disabled
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="barcode">条形码 *</Label>
+                <Input
+                  id="barcode"
+                  value={bookItemFormData.barcode}
+                  onChange={(e) =>
+                    setBookItemFormData({ ...bookItemFormData, barcode: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">位置</Label>
+                <Input
+                  id="location"
+                  value={bookItemFormData.location}
+                  onChange={(e) =>
+                    setBookItemFormData({ ...bookItemFormData, location: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">状态</Label>
+                <Select
+                  value={bookItemFormData.status}
+                  onValueChange={(value) =>
+                    setBookItemFormData({ ...bookItemFormData, status: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="available">可借阅</SelectItem>
+                    <SelectItem value="borrowed">已借出</SelectItem>
+                    <SelectItem value="unavailable">不可用</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="priceAtEntry">入库价格（元）</Label>
+                <Input
+                  id="priceAtEntry"
+                  type="number"
+                  step="0.01"
+                  value={bookItemFormData.priceAtEntry}
+                  onChange={(e) =>
+                    setBookItemFormData({
+                      ...bookItemFormData,
+                      priceAtEntry: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="entryDate">入库日期</Label>
+                <Input
+                  id="entryDate"
+                  type="date"
+                  value={bookItemFormData.entryDate}
+                  onChange={(e) =>
+                    setBookItemFormData({ ...bookItemFormData, entryDate: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="notes">备注</Label>
+                <Input
+                  id="notes"
+                  value={bookItemFormData.notes}
+                  onChange={(e) =>
+                    setBookItemFormData({ ...bookItemFormData, notes: e.target.value })
+                  }
+                  placeholder="备注信息"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddBookItemDialogOpen(false)}
+              >
+                取消
+              </Button>
+              <Button type="submit">添加</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 编辑图书单例对话框 */}
+      <Dialog open={isEditBookItemDialogOpen} onOpenChange={setIsEditBookItemDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>编辑图书单例</DialogTitle>
+            <DialogDescription>修改图书单例信息</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditBookItem} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-bookId">图书ID</Label>
+                <Input
+                  id="edit-bookId"
+                  type="number"
+                  value={bookItemFormData.bookId}
+                  onChange={(e) =>
+                    setBookItemFormData({ ...bookItemFormData, bookId: parseInt(e.target.value) || 0 })
+                  }
+                  disabled
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-barcode">条形码 *</Label>
+                <Input
+                  id="edit-barcode"
+                  value={bookItemFormData.barcode}
+                  onChange={(e) =>
+                    setBookItemFormData({ ...bookItemFormData, barcode: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-location">位置</Label>
+                <Input
+                  id="edit-location"
+                  value={bookItemFormData.location}
+                  onChange={(e) =>
+                    setBookItemFormData({ ...bookItemFormData, location: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">状态</Label>
+                <Select
+                  value={bookItemFormData.status}
+                  onValueChange={(value) =>
+                    setBookItemFormData({ ...bookItemFormData, status: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="available">可借阅</SelectItem>
+                    <SelectItem value="borrowed">已借出</SelectItem>
+                    <SelectItem value="unavailable">不可用</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-priceAtEntry">入库价格（元）</Label>
+                <Input
+                  id="edit-priceAtEntry"
+                  type="number"
+                  step="0.01"
+                  value={bookItemFormData.priceAtEntry}
+                  onChange={(e) =>
+                    setBookItemFormData({
+                      ...bookItemFormData,
+                      priceAtEntry: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-entryDate">入库日期</Label>
+                <Input
+                  id="edit-entryDate"
+                  type="date"
+                  value={bookItemFormData.entryDate}
+                  onChange={(e) =>
+                    setBookItemFormData({ ...bookItemFormData, entryDate: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="edit-notes">备注</Label>
+                <Input
+                  id="edit-notes"
+                  value={bookItemFormData.notes}
+                  onChange={(e) =>
+                    setBookItemFormData({ ...bookItemFormData, notes: e.target.value })
+                  }
+                  placeholder="备注信息"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditBookItemDialogOpen(false)}
+              >
+                取消
+              </Button>
+              <Button type="submit">更新</Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

@@ -9,14 +9,16 @@ import { QueryStatistics } from './components/QueryStatistics';
 import { ReaderDashboard } from './components/ReaderDashboard';
 import { ReaderBorrowManagement } from './components/ReaderBorrowManagement';
 import { ReaderBookBrowser } from './components/ReaderBookBrowser';
+import { CategoryManagement } from './components/CategoryManagement';
+import { BookItemsManagement } from './components/BookItemsManagement';
 import { Button } from './components/ui/button';
-import { Library, BookOpen, Users, BookMarked, BarChart, LogOut, Menu, X } from 'lucide-react';
+import { Library, BookOpen, Users, BookMarked, BarChart, LogOut, Menu, X, Tag } from 'lucide-react';
 import { getBookList, addBook, updateBook, deleteBook, purchaseBook, discardBook, updateBookItemStatus } from '@/app/api/book.ts'
 import { getReaderList, addReader, updateReader, deleteReader } from './api/reader';
 import { toast } from 'sonner'
 import { getBorrowList, borrowBook, returnBook, renewBook } from './api/borrow';
 import { getCategoryMap } from './api/category';
-type Page = 'dashboard' | 'books' | 'readers' | 'borrow' | 'statistics' | 'my-borrows' | 'browse-books';
+type Page = 'dashboard' | 'books' | 'bookitems' | 'categories' | 'readers' | 'borrow' | 'statistics' | 'my-borrows' | 'browse-books';
 
 type Category = {
   id: number;
@@ -65,6 +67,10 @@ export default function App() {
 
   // 初始化示例数据
   useEffect(() => {
+    if (!isLoggedIn) {
+      return;
+    }
+
     const fetchData = async () => {
       try {
         // 从异步请求获取图书数据
@@ -93,7 +99,49 @@ export default function App() {
     };
 
     fetchData();
-  }, []);
+  }, [isLoggedIn]);
+
+  // 刷新函数
+  const refreshBooks = async () => {
+    try {
+      const updatedBooks = await getBookList();
+      setBooks(updatedBooks);
+      toast.success('图书数据已刷新');
+    } catch (error) {
+      toast.error('刷新图书数据失败: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
+  const refreshReaders = async () => {
+    try {
+      const updatedReaders = await getReaderList();
+      setReaders(updatedReaders);
+      toast.success('读者数据已刷新');
+    } catch (error) {
+      toast.error('刷新读者数据失败: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
+  const refreshBorrowRecords = async () => {
+    try {
+      const updatedRecords = await getBorrowList();
+      const filteredRecords = updatedRecords.filter(r => books.some(b => b.id === r.bookId));
+      setBorrowRecords(filteredRecords);
+      toast.success('借阅记录已刷新');
+    } catch (error) {
+      toast.error('刷新借阅记录失败: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
+  const refreshCategories = async () => {
+    try {
+      const updatedCategories = await getCategoryMap();
+      setCategories(updatedCategories);
+      toast.success('分类数据已刷新');
+    } catch (error) {
+      toast.error('刷新分类数据失败: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
 
   // 登录处理
   const handleLogin = (user: string, role: 'admin' | 'reader', readerInfo?: any) => {
@@ -147,6 +195,12 @@ export default function App() {
   };
 
   const handleDeleteBook = async (id: number) => {
+    const book = books.find(b => b.id === id);
+    if (!book) {
+      toast.error('图书不存在');
+      return;
+    }
+
     // 检查是否有活跃的借阅记录
     const activeBorrows = borrowRecords.filter(
       (record) => record && record.bookId === id && (record.status === '借出' || record.status === '逾期')
@@ -157,10 +211,25 @@ export default function App() {
       return;
     }
 
+    // 显示确认对话框，说明删除后果
+    const totalCopies = book.bookItems?.length || 0;
+    const availableCopies = book.bookItems?.filter(item => item.status === 'available').length || 0;
+    const unavailableCopies = totalCopies - availableCopies;
+
+    let confirmMessage = `确定要删除《${book.title}》吗？\n\n`;
+    confirmMessage += `删除后将同时删除所有图书副本（${totalCopies}本），包括：\n`;
+    if (availableCopies > 0) confirmMessage += `- ${availableCopies}本可借阅副本\n`;
+    if (unavailableCopies > 0) confirmMessage += `- ${unavailableCopies}本不可用副本\n`;
+    confirmMessage += '\n此操作不可撤销。';
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
     try {
       await deleteBook(id);
       setBooks(books.filter((book) => book.id !== id));
-      toast.success('图书删除成功');
+      toast.success('图书及所有副本删除成功');
     } catch (error) {
       toast.error('删除图书失败: ' + (error instanceof Error ? error.message : String(error)));
     }
@@ -221,17 +290,16 @@ export default function App() {
           title: updatedBook.title,
           bookItemsCount: updatedBook.bookItems?.length || 0,
           availableCount: updatedBook.bookItems?.filter((item: any) => item.status === 'available').length || 0,
-          damagedCount: updatedBook.bookItems?.filter((item: any) => item.status === 'damaged').length || 0,
+          unavailableCount: updatedBook.bookItems?.filter((item: any) => item.status === 'unavailable').length || 0,
           bookItems: updatedBook.bookItems
         });
       }
 
       setBooks(updatedBooks);
-      toast.success('废弃成功');
-      console.log('Discard operation completed successfully');
+      toast.success('下架成功');
     } catch (error) {
       console.error('Discard operation failed:', error);
-      toast.error('废弃失败: ' + (error instanceof Error ? error.message : String(error)));
+      toast.error('下架失败: ' + (error instanceof Error ? error.message : String(error)));
     }
     console.log('=== End App.tsx Discard Handler ===\n');
   };
@@ -394,6 +462,7 @@ export default function App() {
   const menuItems = userRole === 'admin' ? [
     { id: 'dashboard' as Page, label: '数据概览', icon: Library },
     { id: 'books' as Page, label: '图书管理', icon: BookOpen },
+    { id: 'categories' as Page, label: '分类管理', icon: Tag },
     { id: 'readers' as Page, label: '读者管理', icon: Users },
     { id: 'borrow' as Page, label: '借阅管理', icon: BookMarked },
     { id: 'statistics' as Page, label: '查询统计', icon: BarChart },
@@ -500,7 +569,11 @@ export default function App() {
                 onPurchase={handlePurchase}
                 onDiscard={handleDiscard}
                 onUpdateBookItemStatus={handleUpdateBookItemStatus}
+                onRefresh={refreshBooks}
               />
+            )}
+            {currentPage === 'categories' && userRole === 'admin' && (
+              <CategoryManagement />
             )}
             {currentPage === 'readers' && userRole === 'admin' && (
               <ReaderManagement
@@ -508,6 +581,7 @@ export default function App() {
                 onAddReader={handleAddReader}
                 onUpdateReader={handleUpdateReader}
                 onDeleteReader={handleDeleteReader}
+                onRefresh={refreshReaders}
               />
             )}
             {currentPage === 'borrow' && userRole === 'admin' && (
@@ -518,6 +592,7 @@ export default function App() {
                 onBorrow={handleBorrow}
                 onReturn={handleReturn}
                 onRenew={handleRenew}
+                onRefresh={refreshBorrowRecords}
               />
             )}
             {currentPage === 'browse-books' && userRole === 'reader' && (
