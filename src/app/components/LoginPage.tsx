@@ -7,25 +7,46 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Library } from 'lucide-react';
 import { toast } from 'sonner';
 import { post } from '../api/request';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+
+// 班级/部门选项
+const classDeptOptions = [
+  '一年级1班',
+  '一年级2班',
+  '二年级1班',
+  '二年级2班',
+  '三年级1班',
+  '三年级2班',
+  '四年级1班',
+  '四年级2班',
+  '五年级1班',
+  '五年级2班',
+  '六年级1班',
+  '六年级2班',
+  '教务处',
+  '图书馆',
+  '其他'
+];
 
 interface LoginPageProps {
   onLogin: (username: string, role: 'admin' | 'reader', readerInfo?: any) => void;
 }
 
+type LoginType = 'admin' | 'reader';
+
 
 
 export function LoginPage({ onLogin }: LoginPageProps) {
+  const [loginType, setLoginType] = useState<LoginType>('reader');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [gender, setGender] = useState('');
+  const [gender, setGender] = useState('未知');
   const [classDept, setClassDept] = useState('');
   const [contact, setContact] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleLogin = async (expectedRole?: 'admin' | 'reader') => {
     if (!username || !password) {
       toast.error('请输入用户名和密码');
       return;
@@ -35,6 +56,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     try {
       const response: any = await post('/login', { username, password });
       const { token, user: readerInfo, role } = response;
+
+      if (expectedRole && role !== expectedRole) {
+        toast.error(`登录失败：这不是${expectedRole === 'admin' ? '管理员' : '读者'}账号`);
+        return;
+      }
+
       // 存储token到localStorage
       localStorage.setItem('token', token);
       toast.success('登录成功！');
@@ -94,12 +121,39 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <CardDescription>中小学图书管理平台</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">登录</TabsTrigger>
+          <Tabs defaultValue="reader-login" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="admin-login">管理员登录</TabsTrigger>
+              <TabsTrigger value="reader-login">读者登录</TabsTrigger>
               <TabsTrigger value="register">注册</TabsTrigger>
             </TabsList>
-            <TabsContent value="login">
+            <TabsContent value="admin-login">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-username">管理员用户名</Label>
+                  <Input
+                    id="admin-username"
+                    placeholder="请输入管理员用户名"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-password">密码</Label>
+                  <Input
+                    id="admin-password"
+                    type="password"
+                    placeholder="请输入密码"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button className="w-full" disabled={isLoading} onClick={() => handleLogin('admin')}>
+                  {isLoading ? '登录中...' : '管理员登录'}
+                </Button>
+              </div>
+            </TabsContent>
+            <TabsContent value="reader-login">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-username">用户名</Label>
@@ -120,8 +174,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
-                <Button className="w-full" disabled={isLoading} onClick={handleLogin}>
-                  {isLoading ? '登录中...' : '登录'}
+                <Button className="w-full" disabled={isLoading} onClick={() => handleLogin('reader')}>
+                  {isLoading ? '登录中...' : '读者登录'}
                 </Button>
               </div>
             </TabsContent>
@@ -157,21 +211,37 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="gender">性别 *</Label>
-                  <Input
+                  <Select value={gender} onValueChange={(value: '男' | '女' | '未知') => setGender(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="男">男</SelectItem>
+                      <SelectItem value="女">女</SelectItem>
+                      <SelectItem value="未知">未知</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {/* <Input
                     id="gender"
                     placeholder="请输入性别"
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
-                  />
+                  /> */}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="classDept">班级/部门</Label>
-                  <Input
-                    id="classDept"
-                    placeholder="请输入班级或部门"
-                    value={classDept}
-                    onChange={(e) => setClassDept(e.target.value)}
-                  />
+                  <Select value={classDept} onValueChange={setClassDept}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="请选择班级或部门" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classDeptOptions.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contact">联系方式</Label>
@@ -190,7 +260,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </Tabs>
           <div className="mt-4 text-sm text-gray-500 text-center">
             <p>测试账号：</p>
-            <p>管理员 - admin / admin123</p>
+            <p>管理员 - admin / 123456</p>
             <p>读者 - reader / reader123</p>
           </div>
         </CardContent>

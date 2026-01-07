@@ -57,5 +57,11 @@ public class ReaderService implements ReaderServiceTrait {
         if (reader.getGender() == null || reader.getGender().trim().isEmpty()) {
             throw new IllegalArgumentException("读者性别不能为空");
         }
+        if (reader.getUsername() == null || reader.getUsername().trim().isEmpty()) {
+            throw new IllegalArgumentException("用户名不能为空");
+        }
+        if (reader.getPassword() == null || reader.getPassword().trim().isEmpty()) {
+            throw new IllegalArgumentException("密码不能为空");
+        }
     }
 }

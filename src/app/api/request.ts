@@ -37,7 +37,7 @@ instance.interceptors.response.use(
     if (res.code !== 200) {  // 根据后端约定调整为 200
       // 错误提示（使用 Element UI、Ant Design 或自定义）
       console.error('API error:', res.msg || '请求失败', res);
-      return Promise.reject(res);
+      return Promise.reject(res.msg || '请求失败');
     }
     console.log('Returning data:', res.data);
     return res.data;  // 只返回 data 部分

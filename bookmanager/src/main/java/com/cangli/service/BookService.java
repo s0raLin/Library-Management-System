@@ -4,6 +4,7 @@ import com.cangli.mapper.BookItemMapper;
 import com.cangli.mapper.BookMapper;
 import com.cangli.pojo.Book;
 import com.cangli.pojo.BookItem;
+import com.cangli.pojo.BorrowRecord;
 import com.cangli.pojo.Category;
 import com.cangli.service.impl.BookServiceTrait;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,8 @@ public class BookService implements BookServiceTrait {
 
     @Autowired
     private CategoryService categoryService; // 假设有类别服务
+    @Autowired
+    private BorrowRecordService borrowRecordService;
 
     public List<Book> findAll() {
 
@@ -45,11 +48,11 @@ public class BookService implements BookServiceTrait {
         // 2. 生成图书代码
         Category category = categoryService.findById(book.getCategoryId());
 
-        String prefix = generateBookCode(category.getCode());
+        String prefix = category.getCode();
         // 生成唯一ID
         long timestamp = System.currentTimeMillis();
         String idStr = String.format("%04d", timestamp % 10000);
-        book.setCode(prefix + idStr);
+        book.setCode(prefix + "-" + idStr);
 
         // 3. 设置默认值
         if (book.getBorrowTimes() == null) {
@@ -70,13 +73,12 @@ public class BookService implements BookServiceTrait {
 
     @Transactional
     public void deleteBook(Long id) {
-        // 检查是否有BookItems
-        List<BookItem> bookItems = bookItemService.findByBookId(id);
-        if (bookItems != null && !bookItems.isEmpty()) {
-            throw new IllegalArgumentException("deleteBook: 无法删除图书，因为该图书还有库存副本");
-        }
+        // 检查是否有活跃的借阅记录
 
-        // 没有BookItems，可以安全删除
+        // 软删除所有相关的BookItems（将其状态设置为'deleted'）
+        bookItemService.softDeleteByBookId(id);
+
+        // 软删除图书
         bookMapper.softDeleteBook(id);
     }
 
@@ -125,39 +127,25 @@ public class BookService implements BookServiceTrait {
         }
 
         // 选择前quantity个BookItems进行丢弃
-        StringBuilder idsToUpdate = new StringBuilder();
+        List<Integer> idsToUpdate = new ArrayList<>();
         for (int i = 0; i < quantity; i++) {
-            if (i > 0) idsToUpdate.append(",");
-            idsToUpdate.append(availableItems.get(i).getId());
+            idsToUpdate.add(availableItems.get(i).getId());
         }
 
-        // 批量更新状态为damaged（丢弃的书视为损坏）
-        bookItemService.batchUpdateStatus(idsToUpdate.toString(), "damaged");
+        // 批量更新状态为unavailable（丢弃的书视为不可用）
+        bookItemService.batchUpdateStatus(idsToUpdate, "unavailable");
     }
 
     @Transactional
     public void updateBookItemStatus(Integer itemId, String status) {
-        bookItemService.updateStatus(itemId, status);
-    }
-    /**
-     * 根据分类生成图书代码
-     */
-    private String generateBookCode(String category) {
-        // 从categories表中查找对应的code
-        List<Category> categories = categoryService.findAll();
-        String prefix = "QT"; // 默认分类代码
-        for (Category cat : categories) {
-            if (cat.getName().equals(category)) {
-                prefix = cat.getCode();
-                break;
-            }
+        // 添加日志记录状态变更
+        BookItem currentItem = bookItemService.findById(itemId);
+        if (currentItem != null) {
+            System.out.println("DEBUG: BookItem status change - ItemID: " + itemId +
+                ", From: '" + currentItem.getStatus() + "', To: '" + status +
+                "', Notes: '" + currentItem.getNotes() + "'");
         }
-
-        // 生成唯一ID（这里简化为使用时间戳，实际应该使用数据库自增ID或专门的序列）
-        long timestamp = System.currentTimeMillis();
-        String idStr = String.format("%04d", timestamp % 10000); // 取后4位
-
-        return prefix + "-" + idStr;
+        bookItemService.updateStatus(itemId, status);
     }
 
     /**

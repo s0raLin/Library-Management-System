@@ -8,6 +8,10 @@
         select * from book_items where book_id = #{id}
     </select>
 
+    <select id="findById" resultType="com.cangli.pojo.BookItem">
+        select * from book_items where id=#{id}
+    </select>
+
     <insert id="addBookItem">
         insert into book_items (book_id, barcode, location, status, price_at_entry, entry_date, notes)
         values (#{bookId}, #{barcode}, #{location}, #{status}, #{priceAtEntry}, #{entryDate}, #{notes})
@@ -35,5 +39,29 @@
             #{id}
         </foreach>
     </update>
+
+    <update id="softDeleteByBookId" parameterType="long">
+        update book_items set status = 'deleted' where book_id = #{bookId}
+    </update>
+
+    <select id="findAll" resultType="com.cangli.pojo.BookItem">
+        select * from book_items order by id desc
+    </select>
+
+    <update id="updateBookItem">
+        update book_items set
+        book_id = #{bookId},
+        barcode = #{barcode},
+        location = #{location},
+        status = #{status},
+        price_at_entry = #{priceAtEntry},
+        entry_date = #{entryDate},
+        notes = #{notes}
+        where id = #{id}
+    </update>
+
+    <delete id="deleteBookItem">
+        delete from book_items where id = #{id}
+    </delete>
 
 </mapper>

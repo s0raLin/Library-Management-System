@@ -1,8 +1,10 @@
 package com.cangli.controller;
 
+import com.cangli.pojo.Admin;
 import com.cangli.pojo.Reader;
 import com.cangli.pojo.Result;
 import com.cangli.pojo.User;
+import com.cangli.service.AdminService;
 import com.cangli.service.ReaderService;
 import com.cangli.utils.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,36 +17,46 @@ import org.springframework.web.bind.annotation.*;
 public class LoginController {
     @Autowired
     ReaderService readerService;
+    @Autowired
+    AdminService adminService;
+
     @PostMapping()
     Result index(@RequestBody User user, HttpServletResponse res) {
-        Reader find = readerService.findReaderByUserNameAndPassword(user.getUsername(), user.getPassword());
-
-        System.out.println("Login: "+user);
-        if (find == null || find.getUsername() == null || find.getUsername().isEmpty()) {
-            return Result.error("用户名或密码错误");
-        }
         String username = user.getUsername();
         String password = user.getPassword();
-        String role = username.equals("admin") ? "admin" : "reader";
-        String token = JwtUtil.getToken(username, password, role);
 
-        // 返回包含token和用户信息的对象
-        return Result.ok(new LoginResponse(token, find, role));
+        // 先尝试管理员登录
+        Admin admin = adminService.findByUsernameAndPassword(username, password);
+        if (admin != null) {
+            String role = "admin";
+            String token = JwtUtil.getToken(username, password, role);
+            return Result.ok(new LoginResponse(token, admin, role));
+        }
+
+        // 再尝试读者登录
+        Reader reader = readerService.findReaderByUserNameAndPassword(username, password);
+        if (reader != null && reader.getUsername() != null && !reader.getUsername().isEmpty()) {
+            String role = "reader";
+            String token = JwtUtil.getToken(username, password, role);
+            return Result.ok(new LoginResponse(token, reader, role));
+        }
+
+        return Result.error("用户名或密码错误");
     }
 
     static class LoginResponse {
         private String token;
-        private Reader user;
+        private Object user;
         private String role;
 
-        public LoginResponse(String token, Reader user, String role) {
+        public LoginResponse(String token, Object user, String role) {
             this.token = token;
             this.user = user;
             this.role = role;
         }
 
         public String getToken() { return token; }
-        public Reader getUser() { return user; }
+        public Object getUser() { return user; }
         public String getRole() { return role; }
     }
 }

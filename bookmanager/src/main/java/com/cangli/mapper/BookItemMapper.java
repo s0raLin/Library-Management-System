@@ -13,9 +13,20 @@ public interface BookItemMapper {
 
     void updateStatus(Integer id, String status);
 
-    void batchUpdateStatus(String ids, String status);
+    void batchUpdateStatus(List<Integer> ids, String status);
 
     void addBookItem(BookItem bookItem);
 
     void batchInsert(List<BookItem> bookItems);
+
+    BookItem findById(Integer id);
+
+    void softDeleteByBookId(Long bookId);
+
+    // CRUD operations for individual BookItems
+    List<BookItem> findAll();
+
+    void updateBookItem(BookItem bookItem);
+
+    void deleteBookItem(Integer id);
 }

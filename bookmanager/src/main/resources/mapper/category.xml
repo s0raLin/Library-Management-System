@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cangli.mapper.CategoryMapper">
+    <select id="findAll" resultType="com.cangli.pojo.Category">
+        SELECT * FROM categories ORDER BY id DESC
+    </select>
+
+    <select id="findById" parameterType="int" resultType="com.cangli.pojo.Category">
+        SELECT * FROM categories WHERE id = #{id}
+    </select>
+
+    <select id="findByCode" parameterType="string" resultType="com.cangli.pojo.Category">
+        SELECT * FROM categories WHERE code = #{code}
+    </select>
+
+    <insert id="addCategory" parameterType="com.cangli.pojo.Category" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO categories (name, code, created_at, updated_at)
+        VALUES (#{name}, #{code}, NOW(), NOW())
+    </insert>
+
+    <update id="updateCategory" parameterType="com.cangli.pojo.Category">
+        UPDATE categories SET
+            name = #{name},
+            code = #{code},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteCategory" parameterType="int">
+        DELETE FROM categories WHERE id = #{id}
+    </delete>
+</mapper>

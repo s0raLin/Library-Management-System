@@ -32,24 +32,13 @@ create table book_items (
     status enum (
         'available',
         'borrowed',
-        'damaged',
-        'lost',
-        'repairing',
-        'reserved',
-        'internal'
+        'unavailable',
+        'deleted'
     ) default 'available' null,
     price_at_entry decimal(10, 2) null comment '入库时单价',
     entry_date date not null,
-    notes varchar(255) null,
-    constraint barcode unique (barcode),
-    constraint `1` foreign key (book_id) references book (id) on delete cascade
+    notes varchar(255) null
 ) comment '图书实体表';
-
-create index barcode_2 on book_items (barcode);
-
-create index book_id on book_items (book_id);
-
-create index status on book_items (status);
 
 create table borrow_record (
     id int auto_increment comment '借阅记录ID' primary key,
@@ -94,3 +83,159 @@ create table reader (
     username varchar(20) not null comment '用户名',
     password varchar(20) not null comment '密码'
 ) comment '读者表' collate = utf8mb4_uca1400_ai_ci;
+
+-- 插入默认数据
+INSERT
+    IGNORE INTO categories (name, code)
+VALUES
+    ('计算机', 'JSJ'),
+    ('文学', 'WX'),
+    ('自然科学', 'ZRKX');
+
+INSERT
+    IGNORE INTO borrow_rules (reader_type, max_books, duration_days)
+VALUES
+    ('学生', 3, 30),
+    ('教师', 10, 60);
+
+INSERT
+    IGNORE INTO admin (username, password, role)
+VALUES
+    ('admin', '123456', '管理员');
+
+INSERT INTO
+    categories (name, code)
+VALUES
+    ('计算机科学', 'CS'),
+    ('文学', 'WX'),
+    ('历史', 'LS'),
+    ('数学', 'SX'),
+    ('外语', 'WY');
+
+INSERT INTO
+    book (
+        code,
+        title,
+        author,
+        publisher,
+        isbn,
+        category_id,
+        publish_date,
+        price,
+        entry_date,
+        borrow_times,
+        description,
+        cover_url
+    )
+VALUES
+    (
+        'CS101-001',
+        'Java 核心技术',
+        'Cay S. Horstmann',
+        '机械工业出版社',
+        '9787111213826',
+        1,
+        '2020-01-01',
+        128.00,
+        '2024-09-01',
+        12,
+        'Java 经典入门与进阶书籍',
+        'https://example.com/java.jpg'
+    ),
+    (
+        'CS102-001',
+        '深入理解计算机系统',
+        'Randal E. Bryant',
+        '机械工业出版社',
+        '9787111544937',
+        1,
+        '2019-06-01',
+        139.00,
+        '2024-09-01',
+        5,
+        '计算机系统领域经典教材',
+        'https://example.com/csapp.jpg'
+    ),
+    (
+        'WX201-001',
+        '三体',
+        '刘慈欣',
+        '重庆出版社',
+        '9787536692930',
+        2,
+        '2008-01-01',
+        88.00,
+        '2024-09-02',
+        20,
+        '中国科幻里程碑作品',
+        'https://example.com/santi.jpg'
+    );
+
+INSERT INTO
+    book_items (
+        book_id,
+        barcode,
+        location,
+        status,
+        price_at_entry,
+        entry_date,
+        notes
+    )
+VALUES
+    -- 《Java 核心技术》
+    (
+        1,
+        'BC-JAVA-0001',
+        'A区-计算机-01架',
+        'available',
+        128.00,
+        '2024-09-01',
+        '全新'
+    ),
+    (
+        1,
+        'BC-JAVA-0002',
+        'A区-计算机-01架',
+        'borrowed',
+        128.00,
+        '2024-09-01',
+        '书角轻微磨损'
+    ),
+    -- 《深入理解计算机系统》
+    (
+        2,
+        'BC-CSAPP-0001',
+        'A区-计算机-02架',
+        'available',
+        139.00,
+        '2024-09-01',
+        NULL
+    ),
+    (
+        2,
+        'BC-CSAPP-0002',
+        'A区-计算机-02架',
+        'unavailable',
+        139.00,
+        '2024-09-01',
+        '封面损坏'
+    ),
+    -- 《三体》
+    (
+        3,
+        'BC-ST-0001',
+        'B区-文学-03架',
+        'available',
+        88.00,
+        '2024-09-02',
+        NULL
+    ),
+    (
+        3,
+        'BC-ST-0002',
+        'B区-文学-03架',
+        'borrowed',
+        88.00,
+        '2024-09-02',
+        '热门书籍'
+    );
