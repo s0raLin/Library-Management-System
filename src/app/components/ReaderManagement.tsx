@@ -12,21 +12,14 @@ import { toast } from 'sonner';
 
 // 班级/部门选项
 const classDeptOptions = [
-  '一年级1班',
-  '一年级2班',
-  '二年级1班',
-  '二年级2班',
-  '三年级1班',
-  '三年级2班',
-  '四年级1班',
-  '四年级2班',
-  '五年级1班',
-  '五年级2班',
-  '六年级1班',
-  '六年级2班',
-  '教务处',
-  '图书馆',
-  '其他'
+  'Dept 1',
+  'Dept 2',
+  'Dept 3',
+  'Dept 4',
+  'Class 1',
+  'Class 2',
+  'Class 3',
+  'Class 4'
 ];
 
 export interface Reader {
